@@ -13,7 +13,8 @@
     "podInstall": "cd ios && RCT_NEW_ARCH_ENABLED=1  ruby -S pod install && cd ../",
     "cleanGradle": "cd android && ./gradlew clean && cd ../",
     "podUnInstall": "cd ios && pod deintegrate && cd ../",
-    "podSetup": "npm run podUnInstall && npm run podInstall"
+    "podSetup": "npm run podUnInstall && npm run podInstall",
+    "release": "cd android && ./gradlew clean && ./gradlew assembleRelease"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.0",
