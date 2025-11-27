@@ -8,6 +8,7 @@ import {
   TextInput,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { observer } from 'mobx-react-lite';
 import Toast from 'react-native-toast-message';
 import { NotesStackScreenProps } from '../../navigation/types';
@@ -22,6 +23,7 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
   const notesStore = useNotesStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // Filter notes by search query
   const filteredNotes = notesStore.notes.filter((note) =>
@@ -104,7 +106,7 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
 
       {/* Floating Action Button */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: 20 + insets.bottom }]}
         onPress={handleCreateNote}
         activeOpacity={0.8}
       >

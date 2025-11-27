@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { observer } from 'mobx-react-lite';
 import Toast from 'react-native-toast-message';
 import { NotesStackScreenProps } from '../../navigation/types';
@@ -22,6 +23,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
   const { noteId } = route.params;
   const notesStore = useNotesStore();
   const isEditing = !!noteId;
+  const insets = useSafeAreaInsets();
 
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
@@ -158,7 +160,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
         />
       </View>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Text style={styles.charCount}>
           {content.replace(/<[^>]*>/g, '').length}/500
         </Text>
