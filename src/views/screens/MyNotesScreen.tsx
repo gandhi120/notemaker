@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,6 +16,7 @@ import { NotesStackScreenProps } from '../../navigation/types';
 import { useNotesStore } from '../../stores/StoreProvider';
 import { NoteCard } from '../../components/NoteCard';
 import { EmptyNotesView } from '../../components/EmptyNotesView';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { NoteState } from '../../types';
 import { MyNotesViewModel } from '../../viewmodels/MyNotesViewModel';
 
@@ -24,6 +25,10 @@ type MyNotesScreenProps = NotesStackScreenProps<'MyNotes'>;
 const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) => {
   const notesStore = useNotesStore();
   const insets = useSafeAreaInsets();
+
+  // Delete confirmation state
+  const [noteToDelete, setNoteToDelete] = useState<NoteState | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Create ViewModel instance
   const viewModel = useMemo(
@@ -54,8 +59,50 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
     navigation.navigate('NoteEditor', {});
   };
 
+  const handleDeletePress = (note: NoteState) => {
+    setNoteToDelete(note);
+    setShowDeleteModal(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setNoteToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!noteToDelete) return;
+
+    setShowDeleteModal(false);
+
+    // Optimistic UI - delete happens immediately
+    const success = await viewModel.deleteNote(noteToDelete.id);
+
+    if (success) {
+      Toast.show({
+        type: 'success',
+        text1: 'Note deleted successfully',
+        position: 'bottom',
+        visibilityTime: 2000,
+      });
+    } else {
+      Toast.show({
+        type: 'error',
+        text1: 'Failed to delete note',
+        text2: 'Please try again',
+        position: 'bottom',
+        visibilityTime: 3000,
+      });
+    }
+
+    setNoteToDelete(null);
+  };
+
   const renderNoteCard = ({ item }: { item: NoteState }) => (
-    <NoteCard note={item} onPress={() => handleNotePress(item.id)} />
+    <NoteCard
+      note={item}
+      onPress={() => handleNotePress(item.id)}
+      onDelete={() => handleDeletePress(item)}
+    />
   );
 
   const renderEmptyState = () => {
@@ -125,6 +172,14 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
       >
         <Text style={styles.fabIcon} testID="mynotes-fab-icon">+</Text>
       </TouchableOpacity>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        visible={showDeleteModal}
+        noteTitle={noteToDelete?.title || ''}
+        onCancel={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+      />
 
       <Toast />
     </View>

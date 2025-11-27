@@ -5,15 +5,26 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { StoreProvider } from './src/stores/StoreProvider';
 import RootNavigator from './src/navigation/RootNavigator';
 import { initializeRealm } from './src/models';
+import { getAllNotes } from './src/utils/realmHelper';
+import { RootStackParamList } from './src/navigation/types';
 
 function App(): React.JSX.Element {
   const [isRealmReady, setIsRealmReady] = useState(false);
   const [realmError, setRealmError] = useState<string | null>(null);
+  const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList>('Home');
 
   useEffect(() => {
     const setupRealm = async () => {
       try {
         await initializeRealm();
+
+        // Check if user has any notes to determine initial route
+        const notes = getAllNotes();
+        const hasNotes = notes.length > 0;
+
+        // If user has notes, navigate directly to Drawer (My Notes)
+        // If no notes, show Welcome screen (Home)
+        setInitialRoute(hasNotes ? 'Drawer' : 'Home');
         setIsRealmReady(true);
       } catch (error) {
         console.error('Failed to initialize Realm:', error);
@@ -45,7 +56,7 @@ function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <StoreProvider>
-        <RootNavigator />
+        <RootNavigator initialRouteName={initialRoute} />
       </StoreProvider>
     </SafeAreaProvider>
   );

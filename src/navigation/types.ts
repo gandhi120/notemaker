@@ -4,12 +4,12 @@ import { StackScreenProps } from '@react-navigation/stack';
 
 // Root Stack
 export type RootStackParamList = {
+  Home: undefined;
   Drawer: NavigatorScreenParams<DrawerParamList>;
 };
 
 // Drawer Navigator
 export type DrawerParamList = {
-  Home: undefined;
   NotesStack: NavigatorScreenParams<NotesStackParamList>;
 };
 
@@ -28,6 +28,9 @@ export type DrawerScreenPropsType<T extends keyof DrawerParamList> =
 
 export type NotesStackScreenProps<T extends keyof NotesStackParamList> =
   StackScreenProps<NotesStackParamList, T>;
+
+// Navigation Prop Types (for useNavigation hook)
+export type RootNavigationProp = RootStackScreenProps<'Home'>['navigation'];
 
 declare global {
   namespace ReactNavigation {

@@ -7,9 +7,17 @@ import { styles } from './styles';
 interface NoteCardProps {
   note: NoteState;
   onPress: () => void;
+  onDelete?: () => void;
 }
 
-export const NoteCard: React.FC<NoteCardProps> = ({ note, onPress }) => {
+export const NoteCard: React.FC<NoteCardProps> = ({ note, onPress, onDelete }) => {
+  const handleDelete = (e: any) => {
+    // Stop event propagation to prevent card press
+    e?.stopPropagation?.();
+    if (onDelete) {
+      onDelete();
+    }
+  };
   const stripHtmlTags = (html: string): string => {
     return html.replace(/<[^>]*>/g, '');
   };
@@ -42,7 +50,18 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onPress }) => {
         <Text style={styles.title} numberOfLines={1} testID={`note-card-title-${note.id}`}>
           {note.title}
         </Text>
-        {!note.isSynced && <View style={styles.unsyncedIndicator} testID={`note-card-unsynced-${note.id}`} />}
+        <View style={styles.headerRight} testID={`note-card-header-right-${note.id}`}>
+          {!note.isSynced && <View style={styles.unsyncedIndicator} testID={`note-card-unsynced-${note.id}`} />}
+          {onDelete && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={handleDelete}
+              activeOpacity={0.7}
+              testID={`note-card-delete-${note.id}`}>
+              <Text style={styles.deleteButtonText} testID={`note-card-delete-text-${note.id}`}>🗑️</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <Text style={styles.preview} numberOfLines={2} testID={`note-card-preview-${note.id}`}>

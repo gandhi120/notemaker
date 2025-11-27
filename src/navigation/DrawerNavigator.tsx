@@ -1,7 +1,6 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { DrawerParamList } from './types';
-import HomeScreen from '../views/screens/HomeScreen';
 import NotesStack from './NotesStack';
 
 const Drawer = createDrawerNavigator<DrawerParamList>();
@@ -9,7 +8,7 @@ const Drawer = createDrawerNavigator<DrawerParamList>();
 const DrawerNavigator: React.FC = () => {
   return (
     <Drawer.Navigator
-      initialRouteName="Home"
+      initialRouteName="NotesStack"
       screenOptions={{
         headerStyle: {
           backgroundColor: '#007AFF',
@@ -22,15 +21,6 @@ const DrawerNavigator: React.FC = () => {
         drawerInactiveTintColor: '#666',
       }}
     >
-      <Drawer.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          title: 'Home',
-          drawerLabel: 'Home',
-          drawerItemStyle: { testID: 'drawer-home' },
-        }}
-      />
       <Drawer.Screen
         name="NotesStack"
         component={NotesStack}

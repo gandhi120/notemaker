@@ -20,12 +20,21 @@
 ### High-Level Flow
 
 ```
-UI (Note Editor) → Input Validation → NotesStore (MobX) → API Layer (Axios) → Backend API → Response → Realm Storage (offline cache) → Sync Queue (if offline) → UI Update (Toast + Navigation)
+App Launch → Check Notes in Realm → Conditional Navigation (Home/MyNotes) → UI (Note Editor) → Input Validation → NotesStore (MobX) → API Layer (Axios) → Backend API → Response → Realm Storage (offline cache) → Sync Queue (if offline) → UI Update (Toast + Navigation)
 ```
 
-### Step Flow
+### Initial App Launch Flow
 
-1. User opens Note Editor screen from navigation drawer or My Notes screen
+1. App starts and initializes Realm database
+2. System checks if any notes exist in Realm using `getAllNotes()`
+3. **Conditional Navigation:**
+   - If `notes.length > 0`: Navigate to MyNotesScreen (Drawer → Notes Stack)
+   - If `notes.length === 0`: Navigate to HomeScreen (Welcome screen)
+4. From HomeScreen, user taps "Go to My Notes" button → Navigate to MyNotesScreen
+
+### Note Creation Flow
+
+1. User opens Note Editor screen from navigation drawer, FAB button, or My Notes screen
 2. User types content with formatting (bold/underline) using rich text editor component
 3. User taps Save button
 4. System validates input locally (name not empty, content <= 500 chars)
@@ -39,6 +48,37 @@ UI (Note Editor) → Input Validation → NotesStore (MobX) → API Layer (Axios
 12. Sync service retries pending notes when network is available
 13. My Notes list displays saved notes from Realm with metadata (name, created by, created on)
 
+### Note Deletion Flow
+
+1. User views notes in My Notes screen
+2. User long-presses or swipes on a note card
+3. Delete button/option appears on the card
+4. User taps delete button
+5. Confirmation dialog appears with title "Delete Note" and message "Are you sure you want to delete this note?"
+6. Dialog shows two buttons: "Cancel" (secondary) and "Delete" (danger/red)
+7. If user taps "Cancel": Dialog closes, no action taken
+8. If user taps "Delete": System proceeds with deletion
+9. **Optimistic UI Update (happens immediately, no loading spinner):**
+   - Mark note with isDeleted = true in Realm
+   - Note disappears from list instantly (filtered out by `filteredNotes` computed property)
+   - Show success toast: "Note deleted successfully"
+10. **Background API Call (after UI update):**
+    - Mark isSynced = false in Realm
+    - Attempt DELETE /api/notes/:id/delete
+11. **On API Success:**
+    - Permanently remove note from Realm (hard delete)
+    - Note stays removed from UI
+12. **On API Failure (offline/network error):**
+    - Keep isDeleted = true (note stays hidden in UI)
+    - Add to sync queue for retry when online
+    - User sees no error (note already appears deleted)
+13. **Sync Service:**
+    - Retries deletion when network is available
+    - After successful sync, permanently removes from Realm
+14. **Edge Case - All Notes Deleted:**
+    - If last note is deleted, show empty state: "No notes available"
+    - "Create your first note" button visible
+
 ---
 
 ## 3. Screens & Components
@@ -47,6 +87,7 @@ UI (Note Editor) → Input Validation → NotesStore (MobX) → API Layer (Axios
 
 | Screen | Purpose | Route | Stack |
 |--------|---------|-------|-------|
+| HomeScreen | Welcome screen shown when no notes exist | /home | Root (initial) |
 | NoteEditorScreen | Create/edit notes with rich text formatting | /notes/editor | Drawer → Notes Stack |
 | MyNotesScreen | Display list of saved notes with metadata | /notes/my-notes | Drawer → Notes Stack |
 | SaveNoteModal | Pop-up for entering note name before saving | Modal overlay | N/A (Modal) |
@@ -65,6 +106,7 @@ UI (Note Editor) → Input Validation → NotesStore (MobX) → API Layer (Axios
 | RichTextEditor | New | Yes | src/components/RichTextEditor/index.js |
 | NoteCard | New | Yes | src/components/NoteCard/index.js |
 | SaveNoteModal | New | Yes | src/components/SaveNoteModal/index.js |
+| ConfirmDeleteModal | New | Yes | src/components/ConfirmDeleteModal/index.js |
 | FormattingToolbar | New | Yes | src/components/FormattingToolbar/index.js |
 | EmptyNotesView | New | Yes | src/components/EmptyNotesView/index.js |
 
@@ -78,13 +120,26 @@ UI (Note Editor) → Input Validation → NotesStore (MobX) → API Layer (Axios
 
 ## 4. Navigation
 
-- **Stacks/tabs affected:** Drawer navigation gains new "Notes Stack" with two screens (NoteEditorScreen, MyNotesScreen)
-- **Navigation hierarchy:** DrawerStack → NotesStack → [NoteEditorScreen, MyNotesScreen]
+- **Stacks/tabs affected:**
+  - Root Stack: HomeScreen (conditional initial screen)
+  - Drawer navigation: "Notes Stack" with two screens (NoteEditorScreen, MyNotesScreen)
+- **Navigation hierarchy:**
+  - Root → HomeScreen (if no notes) OR DrawerStack (if notes exist)
+  - DrawerStack → NotesStack → [NoteEditorScreen, MyNotesScreen]
+- **Initial Route Logic:**
+  - Implemented in RootNavigator using `initialRouteName` prop
+  - Check notes count on app launch via `NotesStore.loadNotes()` and `notesStore.notes.length`
+  - If notes exist: `initialRouteName="Drawer"` → lands on MyNotesScreen
+  - If no notes: `initialRouteName="Home"` → lands on HomeScreen
 - **Params passed between screens:**
+  - HomeScreen: No params
   - NoteEditorScreen: `noteId` (optional, for editing existing note), `mode` (create/edit)
   - MyNotesScreen: No params
   - On save success: Navigate from NoteEditorScreen to MyNotesScreen with `refresh: true` param
 - **Redirect rules:**
+  - App launch with notes: Skip HomeScreen, go directly to MyNotesScreen
+  - App launch without notes: Show HomeScreen first
+  - From HomeScreen "Go to My Notes" button: Navigate to Drawer → MyNotesScreen
   - After successful note save: Navigate to MyNotesScreen
   - After note deletion: Remain on MyNotesScreen, refresh list
   - Back button on NoteEditorScreen with unsaved changes: Show confirmation dialog
@@ -242,9 +297,19 @@ UI (Note Editor) → Input Validation → NotesStore (MobX) → API Layer (Axios
   - Flow: Update Realm → Mark isSynced = false → Try PUT /api/notes/:id → Update on success
 
 - **Delete Operations:**
-  - Strategy: Soft delete with sync
-  - Flow: Mark isDeleted = true and isSynced = false in Realm → Try DELETE /api/notes/:id/delete → Remove from Realm on success
-  - Offline handling: Show note as deleted in UI, sync deletion when online
+  - Strategy: Optimistic UI with soft delete and sync
+  - Flow (Best Practice - Optimistic Update):
+    1. User confirms deletion in UI
+    2. **Immediately** mark isDeleted = true in Realm (optimistic UI update)
+    3. **Remove from UI immediately** (filter out deleted notes in computed property)
+    4. Show success toast: "Note deleted successfully"
+    5. In background, mark isSynced = false
+    6. Attempt DELETE /api/notes/:id/delete API call
+    7. On API success: Permanently remove from Realm (hard delete)
+    8. On API failure (offline): Keep isDeleted = true, add to sync queue for retry
+  - Offline handling: Note appears deleted in UI immediately, actual deletion synced when online
+  - Rollback: If API fails 3 times, mark as sync error (do NOT restore note, keep deleted in UI)
+  - Why optimistic? Better UX - user sees instant feedback, no waiting for API response
 
 ---
 

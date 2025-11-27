@@ -156,14 +156,14 @@ export class MyNotesViewModel {
   };
 
   /**
-   * Delete a note
+   * Delete a note (optimistic UI update)
    */
   @action
-  deleteNote = async (noteId: string) => {
+  deleteNote = async (noteId: string): Promise<boolean> => {
     try {
-      await this.notesStore.deleteNote(noteId);
-      await this.loadNotes(); // Reload after delete
-      return true;
+      // Use deleteNoteData for proper optimistic delete
+      const success = await this.notesStore.deleteNoteData(noteId);
+      return success;
     } catch (error) {
       console.error('Failed to delete note:', error);
       return false;

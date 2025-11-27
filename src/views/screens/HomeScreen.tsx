@@ -1,10 +1,20 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { DrawerScreenPropsType } from '../../navigation/types';
+import { RootStackScreenProps } from '../../navigation/types';
 
-type HomeScreenProps = DrawerScreenPropsType<'Home'>;
+type HomeScreenProps = RootStackScreenProps<'Home'>;
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
+  const handleGoToNotes = () => {
+    // Navigate to Drawer which will open MyNotesScreen by default
+    navigation.navigate('Drawer', {
+      screen: 'NotesStack',
+      params: {
+        screen: 'MyNotes',
+      },
+    });
+  };
+
   return (
     <View style={styles.container} testID="home-screen">
       <Text style={styles.title} testID="home-title">Welcome to NoteMaker</Text>
@@ -12,7 +22,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('NotesStack', { screen: 'MyNotes' })}
+        onPress={handleGoToNotes}
         testID="home-navigate-button"
       >
         <Text style={styles.buttonText} testID="home-navigate-button-text">Go to My Notes</Text>

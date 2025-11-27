@@ -16,7 +16,10 @@
 - Formatting options including bold and underline.
 - Save flow with a pop-up for entering a note name.
 - Validation for note name length, duplication, and empty inputs.
-- Display of saved notes under the “My Notes” list with metadata (name, created by, created on).
+- Display of saved notes under the "My Notes" list with metadata (name, created by, created on).
+- Edit existing notes with updated content and formatting.
+- Delete notes with confirmation dialog.
+- Soft delete implementation (optimistic UI with backend sync).
 - UI based on provided design link.
 
 ### Out of Scope
@@ -53,6 +56,26 @@
 - Name > 50 characters shows validation error.
 - Successful save shows: “Note saved successfully.”
 - Saved note appears with: note name, created by, created on date/time.
+
+**Priority:** High
+
+### User Story 2
+
+**As a** user
+**I want to** delete notes I no longer need
+**So that** I can keep my notes list clean and organized.
+
+**Acceptance Criteria:**
+
+- User can long-press or swipe on a note card to reveal delete option.
+- Tapping delete shows confirmation dialog: "Are you sure you want to delete this note?"
+- Confirmation dialog has two buttons: "Cancel" and "Delete"
+- Tapping "Cancel" closes dialog without deleting.
+- Tapping "Delete" removes note from list immediately.
+- Success message shows: "Note deleted successfully."
+- If offline, note is marked for deletion and synced when online.
+- Deleted note disappears from "My Notes" list.
+- If all notes are deleted, empty state is shown.
 
 **Priority:** High
 
@@ -100,10 +123,10 @@
 
 | Role | Permission |
 |------|------------|
-| Inspector | Create & view notes |
-| Associate | Create & view notes |
-| Project Admin | Full access |
-| System Admin | Full access |
+| Inspector | Create, view & delete notes |
+| Associate | Create, view & delete notes |
+| Project Admin | Full access (create, view, edit, delete) |
+| System Admin | Full access (create, view, edit, delete) |
 
 ### Feature 2: Save Note with Validation
 
@@ -122,6 +145,30 @@
 
 - Note names must be unique.
 
+### Feature 3: Delete Note with Confirmation
+
+**Description:** Users can delete notes they no longer need with confirmation to prevent accidental deletion.
+
+**Requirements:**
+
+- FR3.1: User can trigger delete action via long-press or swipe gesture on note card.
+- FR3.2: Confirmation dialog must appear with message "Are you sure you want to delete this note?"
+- FR3.3: Dialog must have "Cancel" and "Delete" buttons.
+- FR3.4: Tapping "Cancel" closes dialog without deleting.
+- FR3.5: Tapping "Delete" removes note from UI immediately (optimistic UI).
+- FR3.6: System must attempt API call to backend DELETE endpoint.
+- FR3.7: Success toast must show: "Note deleted successfully."
+- FR3.8: If offline, note must be marked for deletion and synced when online.
+- FR3.9: Deleted notes must not appear in My Notes list.
+- FR3.10: If all notes deleted, empty state must be displayed.
+
+**Business Rules:**
+
+- Deleted notes are soft-deleted (marked with isDeleted flag) for sync purposes.
+- Once synced, notes are permanently removed from local storage.
+- Users cannot undo deletion (no restore functionality in this release).
+- Delete action requires user confirmation to prevent accidental loss.
+
 ## 8. Non-Functional Requirements
 
 ### Performance
@@ -136,7 +183,8 @@
 
 ### Reliability
 
-- Notes must persist until deleted (delete feature TBD).
+- Notes must persist until deleted by user.
+- Deleted notes must be properly removed after sync completes.
 
 ### Usability
 
@@ -147,13 +195,39 @@
 
 ### User Flow
 
-1. User opens Note Editor.
-2. Types text.
-3. Applies formatting.
-4. Taps Save.
-5. Pop-up appears.
-6. Saves note.
-7. Note appears in My Notes.
+#### Initial App Launch Flow
+
+1. User opens the application
+2. System checks if user has any saved notes
+   - **If notes exist:** Navigate directly to "My Notes" screen (list view)
+   - **If no notes exist:** Show "Welcome to NoteMaker" home screen
+3. From home screen, user taps "Go to My Notes" button to enter the app
+
+#### Note Creation Flow
+
+1. User opens Note Editor (from drawer or FAB button)
+2. Types text
+3. Applies formatting (bold/underline)
+4. Taps Save
+5. Pop-up appears requesting note name
+6. User enters name and confirms
+7. Note is saved
+8. User navigates to My Notes screen
+9. Note appears in My Notes list
+
+#### Note Deletion Flow
+
+1. User views their notes in "My Notes" screen
+2. User long-presses or swipes on a note card
+3. Delete option appears
+4. User taps delete button
+5. Confirmation dialog appears: "Are you sure you want to delete this note?"
+6. User taps "Delete" to confirm (or "Cancel" to abort)
+7. Note is removed from UI immediately (optimistic update)
+8. System attempts to delete from backend API
+9. Success toast shows: "Note deleted successfully"
+10. If offline, note is marked for deletion and synced later
+11. If all notes deleted, empty state is displayed
 
 ### Designs
 
@@ -167,7 +241,12 @@ Link: <https://v0.app/chat/note-application-ui-vNOZvL4KDVu?utm_source=jigarhathi
 
 ### Navigation
 
-- User moves between editor and My Notes.
+- On app launch: Conditional navigation based on note existence
+  - No notes → Home/Welcome screen
+  - Has notes → My Notes list screen
+- From Welcome screen → My Notes screen (via "Go to My Notes" button)
+- From My Notes → Note Editor (via FAB button or note tap for edit)
+- From Note Editor → My Notes (after save or back button)
 
 ## 10. Implementation Considerations
 

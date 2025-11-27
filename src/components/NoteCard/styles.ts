@@ -27,13 +27,26 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#333333',
     flex: 1,
+    marginRight: 8,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   unsyncedIndicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#FF9500',
-    marginLeft: 8,
+  },
+  deleteButton: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: '#FFF0F0',
+  },
+  deleteButtonText: {
+    fontSize: 18,
   },
   preview: {
     fontSize: 14,
