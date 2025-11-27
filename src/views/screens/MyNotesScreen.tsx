@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,7 +8,7 @@ import {
   TextInput,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { observer } from 'mobx-react-lite';
 import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
@@ -17,30 +17,33 @@ import { useNotesStore } from '../../stores/StoreProvider';
 import { NoteCard } from '../../components/NoteCard';
 import { EmptyNotesView } from '../../components/EmptyNotesView';
 import { NoteState } from '../../types';
+import { MyNotesViewModel } from '../../viewmodels/MyNotesViewModel';
 
 type MyNotesScreenProps = NotesStackScreenProps<'MyNotes'>;
 
 const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) => {
   const notesStore = useNotesStore();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
-  // Load notes from Realm when screen mounts
+  // Create ViewModel instance
+  const viewModel = useMemo(
+    () => new MyNotesViewModel(notesStore),
+    [notesStore]
+  );
+
+  // Initialize ViewModel on mount
   useEffect(() => {
-    notesStore.loadNotes();
-  }, []);
+    viewModel.initialize();
+    return () => {
+      viewModel.cleanup();
+    };
+  }, [viewModel]);
 
   // Reload notes when screen comes into focus (after creating/editing)
   useFocusEffect(
     React.useCallback(() => {
-      notesStore.loadNotes();
-    }, [])
-  );
-
-  // Filter notes by search query
-  const filteredNotes = notesStore.notes.filter((note) =>
-    note.title.toLowerCase().includes(searchQuery.toLowerCase())
+      viewModel.loadNotes();
+    }, [viewModel])
   );
 
   const handleNotePress = (noteId: string) => {
@@ -51,21 +54,15 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
     navigation.navigate('NoteEditor', {});
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await notesStore.loadNotes();
-    setRefreshing(false);
-  };
-
   const renderNoteCard = ({ item }: { item: NoteState }) => (
     <NoteCard note={item} onPress={() => handleNotePress(item.id)} />
   );
 
   const renderEmptyState = () => {
-    if (searchQuery) {
+    if (viewModel.searchQuery) {
       return (
         <EmptyNotesView
-          message={`No notes found for "${searchQuery}"`}
+          message={`No notes found for "${viewModel.searchQuery}"`}
         />
       );
     }
@@ -76,43 +73,45 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
     );
   };
 
-  const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search notes..."
-        placeholderTextColor="#999"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-      />
-      {notesStore.unsyncedNotesCount > 0 && (
-        <View style={styles.syncBadge}>
-          <Text style={styles.syncBadgeText}>
-            {notesStore.unsyncedNotesCount} unsynced
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-
   return (
     <View style={styles.container}>
+      {/* Search Header - Fixed outside FlatList to prevent blur */}
+      <View style={styles.headerContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search notes..."
+          placeholderTextColor="#999"
+          value={viewModel.searchQuery}
+          onChangeText={viewModel.setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {viewModel.unsyncedCount > 0 && (
+          <View style={styles.syncBadge}>
+            <Text style={styles.syncBadgeText}>
+              {viewModel.unsyncedCount} unsynced
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Notes List */}
       <FlatList
-        data={filteredNotes}
+        data={viewModel.filteredNotes}
         renderItem={renderNoteCard}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyState}
         contentContainerStyle={
-          filteredNotes.length === 0 ? styles.emptyContainer : styles.listContent
+          viewModel.filteredNotes.length === 0 ? styles.emptyContainer : styles.listContent
         }
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
+            refreshing={viewModel.isRefreshing}
+            onRefresh={viewModel.refreshNotes}
             tintColor="#007AFF"
           />
         }
+        keyboardShouldPersistTaps="handled"
       />
 
       {/* Floating Action Button */}

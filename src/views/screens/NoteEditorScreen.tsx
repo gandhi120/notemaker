@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,37 +15,33 @@ import { NotesStackScreenProps } from '../../navigation/types';
 import { useNotesStore } from '../../stores/StoreProvider';
 import { RichTextEditor } from '../../components/RichTextEditor';
 import { SaveNoteModal } from '../../components/SaveNoteModal';
-import { showSuccessToast, showErrorToast } from '../../config/toast';
+import { NoteEditorViewModel } from '../../viewmodels/NoteEditorViewModel';
 
 type NoteEditorScreenProps = NotesStackScreenProps<'NoteEditor'>;
 
 const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation, route }) => {
   const { noteId } = route.params;
   const notesStore = useNotesStore();
-  const isEditing = !!noteId;
   const insets = useSafeAreaInsets();
 
-  const [content, setContent] = useState('');
-  const [title, setTitle] = useState('');
-  const [showSaveModal, setShowSaveModal] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  // Create ViewModel instance
+  const viewModel = useMemo(
+    () => new NoteEditorViewModel(notesStore, noteId),
+    [notesStore, noteId]
+  );
 
-  // Load existing note if editing
+  // Initialize ViewModel on mount
   useEffect(() => {
-    if (isEditing && noteId) {
-      notesStore.selectNote(noteId);
-      const note = notesStore.selectedNote;
-      if (note) {
-        setContent(note.content);
-        setTitle(note.title);
-      }
-    }
-  }, [isEditing, noteId, notesStore]);
+    viewModel.initialize();
+    return () => {
+      viewModel.cleanup();
+    };
+  }, [viewModel]);
 
   // Handle back button press with unsaved changes
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!hasUnsavedChanges) {
+      if (!viewModel.hasUnsavedChanges) {
         return;
       }
 
@@ -59,93 +55,23 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
           {
             text: 'Discard',
             style: 'destructive',
-            onPress: () => navigation.dispatch(e.data.action),
+            onPress: () => {
+              viewModel.resetUnsavedChanges();
+              navigation.dispatch(e.data.action);
+            },
           },
         ]
       );
     });
 
     return unsubscribe;
-  }, [navigation, hasUnsavedChanges]);
-
-  const handleContentChange = (html: string) => {
-    setContent(html);
-    setHasUnsavedChanges(true);
-  };
-
-  const handleSavePress = () => {
-    if (!content.trim()) {
-      showErrorToast('Cannot save empty note', 'Please add some content before saving.');
-      return;
-    }
-
-    if (content.length > 500) {
-      showErrorToast('Content too long', 'Note content cannot exceed 500 characters.');
-      return;
-    }
-
-    setShowSaveModal(true);
-  };
+  }, [navigation, viewModel]);
 
   const handleSave = async (noteTitle: string) => {
-    if (!noteTitle.trim()) {
-      showErrorToast('Title required', 'Please enter a note title.');
-      return;
-    }
-
-    if (noteTitle.length > 50) {
-      showErrorToast('Title too long', 'Note title cannot exceed 50 characters.');
-      return;
-    }
-
-    // Check for duplicate names using Realm (excluding current note if editing)
-    const isDuplicate = notesStore.checkDuplicateName(noteTitle, noteId);
-
-    if (isDuplicate) {
-      showErrorToast(
-        'Duplicate title',
-        'A note with this title already exists. Please choose another title.'
-      );
-      return;
-    }
-
-    try {
-      if (isEditing && noteId) {
-        // Update existing note in Realm
-        notesStore.updateNote(noteId, {
-          title: noteTitle,
-          content: content,
-          updatedAt: new Date(),
-        });
-        showSuccessToast('Note updated successfully!');
-      } else {
-        // Create new note in Realm
-        const newNote = {
-          id: `note_${Date.now()}`,
-          title: noteTitle,
-          content: content,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isSynced: false,
-        };
-        notesStore.addNote(newNote);
-        showSuccessToast('Note saved successfully!');
-      }
-
-      setHasUnsavedChanges(false);
-      setShowSaveModal(false);
-
-      // Reload notes from Realm before navigating back
-      await notesStore.loadNotes();
+    const success = await viewModel.saveNote(noteTitle);
+    if (success) {
       navigation.goBack();
-    } catch (error) {
-      showErrorToast('Save failed', 'An error occurred while saving the note.');
-      console.error('Save error:', error);
     }
-  };
-
-  const handleCancel = () => {
-    setShowSaveModal(false);
   };
 
   return (
@@ -155,32 +81,32 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
     >
       <View style={styles.editorContainer}>
         <RichTextEditor
-          initialContent={content}
-          onContentChange={handleContentChange}
+          initialContent={viewModel.content}
+          onContentChange={viewModel.handleContentChange}
           placeholder="Start typing your note..."
         />
       </View>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Text style={styles.charCount}>
-          {content.replace(/<[^>]*>/g, '').length}/500
+          {viewModel.characterCount}/500
         </Text>
         <TouchableOpacity
-          style={[styles.saveButton, !content.trim() && styles.saveButtonDisabled]}
-          onPress={handleSavePress}
-          disabled={!content.trim()}
+          style={[styles.saveButton, !viewModel.canSave && styles.saveButtonDisabled]}
+          onPress={viewModel.handleSavePress}
+          disabled={!viewModel.canSave}
         >
           <Text style={styles.saveButtonText}>
-            {isEditing ? 'Update' : 'Save'}
+            {viewModel.isEditing ? 'Update' : 'Save'}
           </Text>
         </TouchableOpacity>
       </View>
 
       <SaveNoteModal
-        visible={showSaveModal}
-        initialTitle={title}
+        visible={viewModel.showSaveModal}
+        initialTitle={viewModel.title}
         onSave={handleSave}
-        onCancel={handleCancel}
+        onCancel={viewModel.cancelSave}
       />
 
       <Toast />
