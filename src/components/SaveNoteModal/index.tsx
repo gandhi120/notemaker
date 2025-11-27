@@ -13,7 +13,7 @@ import { styles } from './styles';
 interface SaveNoteModalProps {
   visible: boolean;
   initialTitle?: string;
-  onSave: (title: string) => void;
+  onSave: (title: string) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -25,9 +25,9 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
 }) => {
   const [title, setTitle] = useState(initialTitle);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (title.trim()) {
-      onSave(title.trim());
+      await onSave(title.trim());
       setTitle('');
     }
   };

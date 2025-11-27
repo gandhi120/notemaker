@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { observer } from 'mobx-react-lite';
+import { useFocusEffect } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { NotesStackScreenProps } from '../../navigation/types';
 import { useNotesStore } from '../../stores/StoreProvider';
@@ -25,6 +26,18 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
+  // Load notes from Realm when screen mounts
+  useEffect(() => {
+    notesStore.loadNotes();
+  }, []);
+
+  // Reload notes when screen comes into focus (after creating/editing)
+  useFocusEffect(
+    React.useCallback(() => {
+      notesStore.loadNotes();
+    }, [])
+  );
+
   // Filter notes by search query
   const filteredNotes = notesStore.notes.filter((note) =>
     note.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -38,12 +51,10 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
     navigation.navigate('NoteEditor', {});
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    // Simulate refresh (in real app, this would fetch from API/Realm)
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+    await notesStore.loadNotes();
+    setRefreshing(false);
   };
 
   const renderNoteCard = ({ item }: { item: NoteState }) => (

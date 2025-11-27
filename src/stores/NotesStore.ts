@@ -1,5 +1,6 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
 import { NoteState } from '../types';
+import * as RealmHelper from '../utils/realmHelper';
 
 export class NotesStore {
   notes: NoteState[] = [];
@@ -9,42 +10,6 @@ export class NotesStore {
 
   constructor() {
     makeAutoObservable(this);
-    // Add mock data for testing
-    this.loadMockData();
-  }
-
-  // Mock data loader for testing Phase 3
-  private loadMockData() {
-    const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    this.notes = [
-      {
-        id: 'note_1',
-        title: 'Meeting Notes',
-        content: '<p><b>Discussed</b> project timeline and <u>deliverables</u> for Q4 2025.</p>',
-        createdAt: now,
-        updatedAt: now,
-        isSynced: true,
-      },
-      {
-        id: 'note_2',
-        title: 'Shopping List',
-        content: '<p>Milk<br/>Eggs<br/>Bread<br/>Coffee</p>',
-        createdAt: yesterday,
-        updatedAt: yesterday,
-        isSynced: false,
-      },
-      {
-        id: 'note_3',
-        title: 'Book Ideas',
-        content: '<p><i>1984</i> by George Orwell<br/><b>Brave New World</b> by Aldous Huxley</p>',
-        createdAt: lastWeek,
-        updatedAt: lastWeek,
-        isSynced: true,
-      },
-    ];
   }
 
   // Getter for selected note
@@ -62,7 +27,135 @@ export class NotesStore {
     return this.notes.filter(note => !note.isSynced).length;
   }
 
-  // Actions
+  // Load all notes from Realm
+  async loadNotes() {
+    this.setLoading(true);
+    this.clearError();
+
+    try {
+      const realmNotes = RealmHelper.getAllNotes();
+      runInAction(() => {
+        this.notes = realmNotes;
+        this.isLoading = false;
+      });
+      console.log(`✅ Loaded ${realmNotes.length} notes from Realm`);
+    } catch (error) {
+      runInAction(() => {
+        this.error = 'Failed to load notes';
+        this.isLoading = false;
+      });
+      console.error('❌ Error loading notes:', error);
+    }
+  }
+
+  // Create a new note
+  async createNote(noteData: {
+    title: string;
+    content: string;
+    formattedContent?: string;
+  }) {
+    this.setLoading(true);
+    this.clearError();
+
+    try {
+      // Use content as formattedContent if not provided
+      const formattedContent = noteData.formattedContent || noteData.content;
+
+      const newNote = RealmHelper.createNote({
+        title: noteData.title,
+        content: noteData.content,
+        formattedContent,
+      });
+
+      runInAction(() => {
+        this.notes.unshift(newNote); // Add to beginning
+        this.isLoading = false;
+      });
+
+      console.log('✅ Note created:', newNote.id);
+      return newNote;
+    } catch (error) {
+      runInAction(() => {
+        this.error = 'Failed to create note';
+        this.isLoading = false;
+      });
+      console.error('❌ Error creating note:', error);
+      throw error;
+    }
+  }
+
+  // Update an existing note
+  async updateNoteData(
+    noteId: string,
+    updates: {
+      title?: string;
+      content?: string;
+      formattedContent?: string;
+    }
+  ) {
+    this.setLoading(true);
+    this.clearError();
+
+    try {
+      const updatedNote = RealmHelper.updateNote(noteId, updates);
+
+      if (updatedNote) {
+        runInAction(() => {
+          const index = this.notes.findIndex(n => n.id === noteId);
+          if (index !== -1) {
+            this.notes[index] = updatedNote;
+          }
+          this.isLoading = false;
+        });
+        console.log('✅ Note updated:', noteId);
+        return updatedNote;
+      } else {
+        throw new Error('Note not found');
+      }
+    } catch (error) {
+      runInAction(() => {
+        this.error = 'Failed to update note';
+        this.isLoading = false;
+      });
+      console.error('❌ Error updating note:', error);
+      throw error;
+    }
+  }
+
+  // Delete a note (soft delete)
+  async deleteNoteData(noteId: string) {
+    this.setLoading(true);
+    this.clearError();
+
+    try {
+      const success = RealmHelper.deleteNote(noteId);
+
+      if (success) {
+        runInAction(() => {
+          this.notes = this.notes.filter(n => n.id !== noteId);
+          this.isLoading = false;
+        });
+        console.log('✅ Note deleted:', noteId);
+        return true;
+      } else {
+        throw new Error('Note not found');
+      }
+    } catch (error) {
+      runInAction(() => {
+        this.error = 'Failed to delete note';
+        this.isLoading = false;
+      });
+      console.error('❌ Error deleting note:', error);
+      throw error;
+    }
+  }
+
+  // Check if a note name already exists
+  checkDuplicateName(name: string, excludeNoteId?: string): boolean {
+    return RealmHelper.checkDuplicateName(name, excludeNoteId);
+  }
+
+  // Actions (legacy methods for compatibility with existing screens)
   setLoading(loading: boolean) {
     this.isLoading = loading;
   }
@@ -80,10 +173,12 @@ export class NotesStore {
   }
 
   addNote(note: NoteState) {
+    // Legacy method - use createNote instead
     this.notes.unshift(note);
   }
 
   updateNote(noteId: string, updates: Partial<NoteState>) {
+    // Legacy method for screen compatibility
     const index = this.notes.findIndex(n => n.id === noteId);
     if (index !== -1) {
       this.notes[index] = { ...this.notes[index], ...updates };
@@ -91,6 +186,7 @@ export class NotesStore {
   }
 
   deleteNote(noteId: string) {
+    // Legacy method - use deleteNoteData instead
     this.notes = this.notes.filter(n => n.id !== noteId);
   }
 

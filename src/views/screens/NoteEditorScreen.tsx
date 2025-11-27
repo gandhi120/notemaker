@@ -87,7 +87,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
     setShowSaveModal(true);
   };
 
-  const handleSave = (noteTitle: string) => {
+  const handleSave = async (noteTitle: string) => {
     if (!noteTitle.trim()) {
       showErrorToast('Title required', 'Please enter a note title.');
       return;
@@ -98,10 +98,8 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
       return;
     }
 
-    // Check for duplicate names (excluding current note if editing)
-    const isDuplicate = notesStore.notes.some(
-      (note) => note.title.toLowerCase() === noteTitle.toLowerCase() && note.id !== noteId
-    );
+    // Check for duplicate names using Realm (excluding current note if editing)
+    const isDuplicate = notesStore.checkDuplicateName(noteTitle, noteId);
 
     if (isDuplicate) {
       showErrorToast(
@@ -113,7 +111,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
 
     try {
       if (isEditing && noteId) {
-        // Update existing note
+        // Update existing note in Realm
         notesStore.updateNote(noteId, {
           title: noteTitle,
           content: content,
@@ -121,14 +119,14 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
         });
         showSuccessToast('Note updated successfully!');
       } else {
-        // Create new note
+        // Create new note in Realm
         const newNote = {
           id: `note_${Date.now()}`,
           title: noteTitle,
           content: content,
           createdAt: new Date(),
           updatedAt: new Date(),
-          isSynced: false, // Mock: will be synced later
+          isSynced: false,
         };
         notesStore.addNote(newNote);
         showSuccessToast('Note saved successfully!');
@@ -136,6 +134,9 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
 
       setHasUnsavedChanges(false);
       setShowSaveModal(false);
+
+      // Reload notes from Realm before navigating back
+      await notesStore.loadNotes();
       navigation.goBack();
     } catch (error) {
       showErrorToast('Save failed', 'An error occurred while saving the note.');

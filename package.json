@@ -9,7 +9,11 @@
     "start": "react-native start",
     "common": "rm -rf node_modules/ && sleep 10 && npm install --legacy-peer-deps && npm run podSetup",
     "cleanGradle": "cd android && ./gradlew clean && cd ../",
-    "test": "jest"
+    "test": "jest",
+    "podInstall": "cd ios && RCT_NEW_ARCH_ENABLED=1  ruby -S pod install && cd ../",
+    "cleanGradle": "cd android && ./gradlew clean && cd ../",
+    "podUnInstall": "cd ios && pod deintegrate && cd ../",
+    "podSetup": "npm run podUnInstall && npm run podInstall"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.1.0",

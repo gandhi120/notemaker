@@ -22,12 +22,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     reactNativeFactory = factory
 
     window = UIWindow(frame: UIScreen.main.bounds)
+    window?.makeKeyAndVisible()
 
-    factory.startReactNative(
+    let rootView = factory.rootViewFactory.view(
       withModuleName: "notemaker",
-      in: window,
+      initialProperties: nil,
       launchOptions: launchOptions
     )
+
+    let rootViewController = UIViewController()
+    rootViewController.view = rootView
+    window?.rootViewController = rootViewController
 
     return true
   }
