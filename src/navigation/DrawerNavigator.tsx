@@ -28,6 +28,7 @@ const DrawerNavigator: React.FC = () => {
         options={{
           title: 'Home',
           drawerLabel: 'Home',
+          drawerItemStyle: { testID: 'drawer-home' },
         }}
       />
       <Drawer.Screen
@@ -37,6 +38,7 @@ const DrawerNavigator: React.FC = () => {
           title: 'Notes',
           drawerLabel: 'My Notes',
           headerShown: false,
+          drawerItemStyle: { testID: 'drawer-mynotes' },
         }}
       />
     </Drawer.Navigator>

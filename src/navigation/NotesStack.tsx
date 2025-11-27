@@ -38,12 +38,12 @@ const NotesStack: React.FC = () => {
         <Stack.Screen
           name="MyNotes"
           component={MyNotesScreen}
-          options={{ title: 'My Notes' }}
+          options={{ title: 'My Notes', headerTestID: 'mynotes-header' }}
         />
         <Stack.Screen
           name="NoteEditor"
           component={NoteEditorScreen}
-          options={{ title: 'Note Editor' }}
+          options={{ title: 'Note Editor', headerTestID: 'editor-header' }}
         />
       </Stack.Navigator>
     </>

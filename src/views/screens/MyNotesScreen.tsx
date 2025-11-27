@@ -74,9 +74,9 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="mynotes-screen">
       {/* Search Header - Fixed outside FlatList to prevent blur */}
-      <View style={styles.headerContainer}>
+      <View style={styles.headerContainer} testID="mynotes-header">
         <TextInput
           style={styles.searchInput}
           placeholder="Search notes..."
@@ -85,10 +85,11 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
           onChangeText={viewModel.setSearchQuery}
           autoCapitalize="none"
           autoCorrect={false}
+          testID="mynotes-search-input"
         />
         {viewModel.unsyncedCount > 0 && (
-          <View style={styles.syncBadge}>
-            <Text style={styles.syncBadgeText}>
+          <View style={styles.syncBadge} testID="mynotes-sync-badge">
+            <Text style={styles.syncBadgeText} testID="mynotes-sync-badge-text">
               {viewModel.unsyncedCount} unsynced
             </Text>
           </View>
@@ -112,6 +113,7 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
           />
         }
         keyboardShouldPersistTaps="handled"
+        testID="mynotes-list"
       />
 
       {/* Floating Action Button */}
@@ -119,8 +121,9 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
         style={[styles.fab, { bottom: 20 + insets.bottom }]}
         onPress={handleCreateNote}
         activeOpacity={0.8}
+        testID="mynotes-fab"
       >
-        <Text style={styles.fabIcon}>+</Text>
+        <Text style={styles.fabIcon} testID="mynotes-fab-icon">+</Text>
       </TouchableOpacity>
 
       <Toast />

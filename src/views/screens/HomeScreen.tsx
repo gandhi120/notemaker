@@ -6,15 +6,16 @@ type HomeScreenProps = DrawerScreenPropsType<'Home'>;
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to NoteMaker</Text>
-      <Text style={styles.subtitle}>Your smart note-taking companion</Text>
+    <View style={styles.container} testID="home-screen">
+      <Text style={styles.title} testID="home-title">Welcome to NoteMaker</Text>
+      <Text style={styles.subtitle} testID="home-subtitle">Your smart note-taking companion</Text>
 
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate('NotesStack', { screen: 'MyNotes' })}
+        testID="home-navigate-button"
       >
-        <Text style={styles.buttonText}>Go to My Notes</Text>
+        <Text style={styles.buttonText} testID="home-navigate-button-text">Go to My Notes</Text>
       </TouchableOpacity>
     </View>
   );

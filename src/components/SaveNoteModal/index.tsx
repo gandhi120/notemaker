@@ -15,6 +15,7 @@ interface SaveNoteModalProps {
   initialTitle?: string;
   onSave: (title: string) => void | Promise<void>;
   onCancel: () => void;
+  testID?: string;
 }
 
 export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
@@ -22,6 +23,7 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
   initialTitle = '',
   onSave,
   onCancel,
+  testID,
 }) => {
   const [title, setTitle] = useState(initialTitle);
 
@@ -49,13 +51,15 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
       transparent
       animationType="fade"
       onRequestClose={handleCancel}
+      testID={testID}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
+        testID="modal-overlay"
       >
-        <View style={styles.modalContainer}>
-          <Text style={styles.title}>Save Note</Text>
+        <View style={styles.modalContainer} testID="modal-container">
+          <Text style={styles.title} testID="modal-title">Save Note</Text>
 
           <TextInput
             style={styles.input}
@@ -65,22 +69,25 @@ export const SaveNoteModal: React.FC<SaveNoteModalProps> = ({
             onChangeText={setTitle}
             maxLength={100}
             autoFocus
+            testID="modal-title-input"
           />
 
-          <View style={styles.buttonContainer}>
+          <View style={styles.buttonContainer} testID="modal-button-container">
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
               onPress={handleCancel}
+              testID="modal-cancel-button"
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText} testID="modal-cancel-button-text">Cancel</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.button, styles.saveButton]}
               onPress={handleSave}
               disabled={!title.trim()}
+              testID="modal-save-button"
             >
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Text style={styles.saveButtonText} testID="modal-save-button-text">Save</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -7,12 +7,14 @@ interface RichTextEditorProps {
   initialContent?: string;
   onContentChange?: (html: string) => void;
   placeholder?: string;
+  testID?: string;
 }
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   initialContent = '',
   onContentChange,
   placeholder = 'Start typing your note...',
+  testID = 'rich-text-editor',
 }) => {
   const richText = useRef<RichEditor>(null);
 
@@ -23,7 +25,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID={testID}>
       <RichToolbar
         editor={richText}
         actions={[
@@ -41,6 +43,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         iconTint="#000000"
         selectedIconTint="#2095F2"
         disabledIconTint="#bfbfbf"
+        testID={`${testID}-toolbar`}
       />
       <RichEditor
         ref={richText}
@@ -50,6 +53,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         style={styles.editor}
         androidHardwareAccelerationDisabled={true}
         initialFocus={true}
+        testID={`${testID}-webview`}
       />
     </View>
   );

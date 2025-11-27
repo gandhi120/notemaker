@@ -78,25 +78,28 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
+      testID="editor-screen"
     >
-      <View style={styles.editorContainer}>
+      <View style={styles.editorContainer} testID="editor-container">
         <RichTextEditor
           initialContent={viewModel.content}
           onContentChange={viewModel.handleContentChange}
           placeholder="Start typing your note..."
+          testID="editor-rich-text"
         />
       </View>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
-        <Text style={styles.charCount}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]} testID="editor-footer">
+        <Text style={styles.charCount} testID="editor-char-count">
           {viewModel.characterCount}/500
         </Text>
         <TouchableOpacity
           style={[styles.saveButton, !viewModel.canSave && styles.saveButtonDisabled]}
           onPress={viewModel.handleSavePress}
           disabled={!viewModel.canSave}
+          testID="editor-save-button"
         >
-          <Text style={styles.saveButtonText}>
+          <Text style={styles.saveButtonText} testID="editor-save-button-text">
             {viewModel.isEditing ? 'Update' : 'Save'}
           </Text>
         </TouchableOpacity>
@@ -107,6 +110,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = observer(({ navigation
         initialTitle={viewModel.title}
         onSave={handleSave}
         onCancel={viewModel.cancelSave}
+        testID="save-note-modal"
       />
 
       <Toast />

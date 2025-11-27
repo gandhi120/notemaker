@@ -26,18 +26,18 @@ function App(): React.JSX.Element {
 
   if (realmError) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>❌ {realmError}</Text>
-        <Text style={styles.errorSubtext}>Please restart the app</Text>
+      <View style={styles.errorContainer} testID="app-error-container">
+        <Text style={styles.errorText} testID="app-error-text">❌ {realmError}</Text>
+        <Text style={styles.errorSubtext} testID="app-error-subtext">Please restart the app</Text>
       </View>
     );
   }
 
   if (!isRealmReady) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Initializing...</Text>
+      <View style={styles.loadingContainer} testID="app-loading-container">
+        <ActivityIndicator size="large" color="#007AFF" testID="app-loading-indicator" />
+        <Text style={styles.loadingText} testID="app-loading-text">Initializing...</Text>
       </View>
     );
   }

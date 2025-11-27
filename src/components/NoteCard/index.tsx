@@ -37,20 +37,20 @@ export const NoteCard: React.FC<NoteCardProps> = ({ note, onPress }) => {
   };
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={1}>
+    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7} testID={`note-card-${note.id}`}>
+      <View style={styles.header} testID={`note-card-header-${note.id}`}>
+        <Text style={styles.title} numberOfLines={1} testID={`note-card-title-${note.id}`}>
           {note.title}
         </Text>
-        {!note.isSynced && <View style={styles.unsyncedIndicator} />}
+        {!note.isSynced && <View style={styles.unsyncedIndicator} testID={`note-card-unsynced-${note.id}`} />}
       </View>
 
-      <Text style={styles.preview} numberOfLines={2}>
+      <Text style={styles.preview} numberOfLines={2} testID={`note-card-preview-${note.id}`}>
         {getPreview(note.content)}
       </Text>
 
-      <View style={styles.footer}>
-        <Text style={styles.date}>{formatDate(note.updatedAt)}</Text>
+      <View style={styles.footer} testID={`note-card-footer-${note.id}`}>
+        <Text style={styles.date} testID={`note-card-date-${note.id}`}>{formatDate(note.updatedAt)}</Text>
       </View>
     </TouchableOpacity>
   );
