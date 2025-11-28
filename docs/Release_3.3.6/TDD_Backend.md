@@ -9,6 +9,7 @@
 
 - **Feature Summary:** Simple note-taking application backend API that allows users to create, read, update, and soft-delete notes with rich text formatting support
 - **Purpose:** Provide RESTful API endpoints to persist notes with metadata (creator, timestamps) and support duplicate name prevention, character limits, and validation
+- **Base URL:** `https://note-taker-backend-c193.onrender.com`
 - **Affected Modules:** Routes (/api/notes), Controllers (notesController.js), Services (Not Available), Repository (Note Model), Tables (notes collection)
 - **Dependencies:** Express 4.x, MongoDB 6.x, Mongoose ODM, express-validator, CORS middleware, express-rate-limit, express-mongo-sanitize, xss-clean
 - **Assumptions:** User authenticated (currently defaults to "Anonymous User"), MongoDB connection available, migrations not needed (schemaless), environment variables configured
@@ -37,18 +38,20 @@ Request flows through the following pipeline:
 
 ## 3. API Endpoints
 
-| Endpoint                      | Method | Description                       | Auth             | RBAC          |
-| ----------------------------- | ------ | --------------------------------- | ---------------- | ------------- |
-| `/api/notes`                  | POST   | Create new note                   | No (future: Yes) | Not Available |
-| `/api/notes`                  | GET    | Get all notes (not deleted)       | No (future: Yes) | Not Available |
-| `/api/notes/:id`              | GET    | Get single note by ID             | No (future: Yes) | Not Available |
-| `/api/notes/:id`              | PUT    | Update note (content and/or name) | No (future: Yes) | Not Available |
-| `/api/notes/:id/delete`       | DELETE | Soft delete note                  | No (future: Yes) | Not Available |
-| `/api/notes/check-name/:name` | GET    | Check if note name exists         | No (future: Yes) | Not Available |
+**Base URL:** `https://note-taker-backend-c193.onrender.com`
+
+| Endpoint                 | Method | Description               | Auth             | RBAC          |
+| ------------------------ | ------ | ------------------------- | ---------------- | ------------- |
+| `/api/notes/create`      | POST   | Create a new note         | No (future: Yes) | Not Available |
+| `/api/notes/:id`         | GET    | Get single note by ID     | No (future: Yes) | Not Available |
+| `/api/notes`             | GET    | Get all non-deleted notes | No (future: Yes) | Not Available |
+| `/api/notes/:id/title`   | PATCH  | Update note title         | No (future: Yes) | Not Available |
+| `/api/notes/:id/content` | PATCH  | Update note content       | No (future: Yes) | Not Available |
+| `/api/notes/:id/delete`  | DELETE | Soft-delete a note        | No (future: Yes) | Not Available |
 
 ### Request Schema
 
-**POST /api/notes** (Create Note)
+**POST /api/notes/create** (Create Note)
 
 ```json
 {
@@ -58,18 +61,26 @@ Request flows through the following pipeline:
 }
 ```
 
-**PUT /api/notes/:id** (Update Note)
+**PATCH /api/notes/:id/title** (Update Note Title)
 
 ```json
 {
-  "name": "Updated Meeting Notes",
-  "content": "Updated plain text content"
+  "title": "Updated Meeting Notes"
+}
+```
+
+**PATCH /api/notes/:id/content** (Update Note Content)
+
+```json
+{
+  "content": "Updated plain text content",
+  "formattedContent": "<b>Updated HTML</b> formatted content"
 }
 ```
 
 ### Response Schema
 
-**Success Response (POST/PUT/GET single note)**
+**Success Response (POST/PATCH/GET single note)**
 
 ```json
 {
@@ -115,15 +126,6 @@ Request flows through the following pipeline:
 {
   "success": true,
   "message": "Note deleted successfully"
-}
-```
-
-**Success Response (GET /api/notes/check-name/:name)**
-
-```json
-{
-  "success": true,
-  "exists": true
 }
 ```
 

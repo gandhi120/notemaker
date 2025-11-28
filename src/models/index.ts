@@ -15,10 +15,20 @@ export const initializeRealm = async (): Promise<Realm> => {
   try {
     const config: Realm.Configuration = {
       schema: [Note],
-      schemaVersion: 1,
-      migration: () => {
-        // Handle schema migrations here when version changes
-        // Currently on version 1, no migrations needed
+      schemaVersion: 2, // v2: Added apiId field for API sync
+      migration: (oldRealm, newRealm) => {
+        // v1 -> v2: Add apiId field to existing notes
+        if (oldRealm.schemaVersion < 2) {
+          const oldNotes = oldRealm.objects<Note>('Note');
+          const newNotes = newRealm.objects<Note>('Note');
+
+          for (let i = 0; i < oldNotes.length; i++) {
+            // Set apiId to null for existing notes
+            // Will be populated when notes sync to API
+            newNotes[i].apiId = null;
+          }
+          console.log(`✅ Migrated ${oldNotes.length} notes to schema v2`);
+        }
       },
       deleteRealmIfMigrationNeeded: __DEV__, // Only in development
     };

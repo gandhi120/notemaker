@@ -1,6 +1,7 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { NoteState } from '../types';
 import * as RealmHelper from '../utils/realmHelper';
+import notesService from '../services/notesService';
 
 export class NotesStore {
   notes: NoteState[] = [];
@@ -48,7 +49,7 @@ export class NotesStore {
     }
   }
 
-  // Create a new note
+  // Create a new note (Offline-first with API sync)
   async createNote(noteData: {
     title: string;
     content: string;
@@ -61,6 +62,7 @@ export class NotesStore {
       // Use content as formattedContent if not provided
       const formattedContent = noteData.formattedContent || noteData.content;
 
+      // Step 1: Save to Realm immediately (optimistic UI)
       const newNote = RealmHelper.createNote({
         title: noteData.title,
         content: noteData.content,
@@ -72,7 +74,15 @@ export class NotesStore {
         this.isLoading = false;
       });
 
-      console.log('✅ Note created:', newNote.id);
+      console.log('✅ Note created in Realm:', newNote.id);
+
+      // Step 2: Sync to API in background
+      this.syncNoteToAPI(newNote.id, {
+        name: noteData.title,
+        content: noteData.content,
+        formattedContent,
+      });
+
       return newNote;
     } catch (error) {
       runInAction(() => {
@@ -84,7 +94,33 @@ export class NotesStore {
     }
   }
 
-  // Update an existing note
+  // Sync note to API (background operation)
+  private async syncNoteToAPI(
+    noteId: string,
+    data: { name: string; content: string; formattedContent: string }
+  ) {
+    try {
+      const response = await notesService.createNote(data);
+      const apiId = response.data._id;
+      console.log('✅ Note synced to API:', apiId);
+
+      // Mark as synced in Realm and store API ID
+      RealmHelper.markNoteAsSynced(noteId, apiId);
+
+      // Update local state
+      runInAction(() => {
+        const index = this.notes.findIndex(n => n.id === noteId);
+        if (index !== -1) {
+          this.notes[index].isSynced = true;
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to sync note to API (will retry):', error);
+      // Note remains with isSynced = false for later retry
+    }
+  }
+
+  // Update an existing note (Offline-first with API sync)
   async updateNoteData(
     noteId: string,
     updates: {
@@ -97,6 +133,7 @@ export class NotesStore {
     this.clearError();
 
     try {
+      // Step 1: Update in Realm immediately (optimistic UI)
       const updatedNote = RealmHelper.updateNote(noteId, updates);
 
       if (updatedNote) {
@@ -107,7 +144,11 @@ export class NotesStore {
           }
           this.isLoading = false;
         });
-        console.log('✅ Note updated:', noteId);
+        console.log('✅ Note updated in Realm:', noteId);
+
+        // Step 2: Sync to API in background
+        this.syncUpdateToAPI(noteId, updates);
+
         return updatedNote;
       } else {
         throw new Error('Note not found');
@@ -122,12 +163,60 @@ export class NotesStore {
     }
   }
 
-  // Delete a note (soft delete)
+  // Sync note update to API (background operation)
+  private async syncUpdateToAPI(
+    noteId: string,
+    updates: {
+      title?: string;
+      content?: string;
+      formattedContent?: string;
+    }
+  ) {
+    try {
+      // Get API ID for this note
+      const apiId = RealmHelper.getApiIdByLocalId(noteId);
+
+      if (!apiId) {
+        console.warn('⚠️ Cannot sync update - note not synced to API yet:', noteId);
+        return;
+      }
+
+      // Update title if provided
+      if (updates.title) {
+        await notesService.updateNoteTitle(apiId, { title: updates.title });
+        console.log('✅ Note title synced to API:', apiId);
+      }
+
+      // Update content if provided
+      if (updates.content || updates.formattedContent) {
+        await notesService.updateNoteContent(apiId, {
+          content: updates.content || '',
+          formattedContent: updates.formattedContent || updates.content || '',
+        });
+        console.log('✅ Note content synced to API:', apiId);
+      }
+
+      // Mark as synced
+      RealmHelper.markNoteAsSynced(noteId, apiId);
+
+      runInAction(() => {
+        const index = this.notes.findIndex(n => n.id === noteId);
+        if (index !== -1) {
+          this.notes[index].isSynced = true;
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to sync update to API (will retry):', error);
+    }
+  }
+
+  // Delete a note (Offline-first soft delete with API sync)
   async deleteNoteData(noteId: string) {
     this.setLoading(true);
     this.clearError();
 
     try {
+      // Step 1: Soft delete in Realm immediately (optimistic UI)
       const success = RealmHelper.deleteNote(noteId);
 
       if (success) {
@@ -135,7 +224,11 @@ export class NotesStore {
           this.notes = this.notes.filter(n => n.id !== noteId);
           this.isLoading = false;
         });
-        console.log('✅ Note deleted:', noteId);
+        console.log('✅ Note soft deleted in Realm:', noteId);
+
+        // Step 2: Sync deletion to API in background
+        this.syncDeleteToAPI(noteId);
+
         return true;
       } else {
         throw new Error('Note not found');
@@ -147,6 +240,29 @@ export class NotesStore {
       });
       console.error('❌ Error deleting note:', error);
       throw error;
+    }
+  }
+
+  // Sync note deletion to API (background operation)
+  private async syncDeleteToAPI(noteId: string) {
+    try {
+      // Get API ID for this note
+      const apiId = RealmHelper.getApiIdByLocalId(noteId);
+
+      if (!apiId) {
+        console.warn('⚠️ Cannot sync deletion - note not synced to API yet:', noteId);
+        // Note was never synced to API, just delete locally
+        return;
+      }
+
+      await notesService.deleteNote(apiId);
+      console.log('✅ Note deletion synced to API:', apiId);
+
+      // Permanently remove from Realm after successful API deletion
+      // (Already soft deleted, this is for cleanup)
+    } catch (error) {
+      console.error('❌ Failed to sync deletion to API (will retry):', error);
+      // Note remains soft deleted locally, will retry sync later
     }
   }
 

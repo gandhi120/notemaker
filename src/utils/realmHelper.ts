@@ -203,9 +203,9 @@ export const getUnsyncedNotes = (): NoteState[] => {
 };
 
 /**
- * Mark a note as synced
+ * Mark a note as synced and store API ID
  */
-export const markNoteAsSynced = (noteId: string): boolean => {
+export const markNoteAsSynced = (noteId: string, apiId?: string): boolean => {
   try {
     const realm = getRealm();
     const note = realm.objects<Note>('Note').filtered('id == $0', noteId)[0];
@@ -218,13 +218,36 @@ export const markNoteAsSynced = (noteId: string): boolean => {
     realm.write(() => {
       note.isSynced = true;
       note.updatedAt = new Date();
+      if (apiId) {
+        note.apiId = apiId; // Store API's _id for future operations
+      }
     });
 
-    console.log('✅ Note marked as synced:', noteId);
+    console.log('✅ Note marked as synced:', noteId, apiId ? `(API ID: ${apiId})` : '');
     return true;
   } catch (error) {
     console.error('❌ Error marking note as synced:', error);
     return false;
+  }
+};
+
+/**
+ * Get API ID for a local note ID
+ */
+export const getApiIdByLocalId = (noteId: string): string | null => {
+  try {
+    const realm = getRealm();
+    const note = realm.objects<Note>('Note').filtered('id == $0', noteId)[0];
+
+    if (!note) {
+      console.warn('⚠️ Note not found:', noteId);
+      return null;
+    }
+
+    return note.apiId || null;
+  } catch (error) {
+    console.error('❌ Error getting API ID:', error);
+    return null;
   }
 };
 

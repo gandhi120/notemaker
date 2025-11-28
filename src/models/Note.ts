@@ -7,6 +7,7 @@ import Realm from 'realm';
 export class Note extends Realm.Object<Note> {
   _id!: Realm.BSON.ObjectId;
   id!: string; // Custom string ID for app logic
+  apiId?: string; // Server's MongoDB _id (set after successful sync to API)
   name!: string; // Note title (max 50 chars)
   content!: string; // Plain text content (max 500 chars)
   formattedContent!: string; // HTML formatted content
@@ -22,6 +23,7 @@ export class Note extends Realm.Object<Note> {
     properties: {
       _id: 'objectId',
       id: { type: 'string', indexed: true },
+      apiId: { type: 'string', optional: true, indexed: true }, // Optional - populated after API sync
       name: { type: 'string', indexed: true }, // Indexed for search/duplicate check
       content: 'string',
       formattedContent: 'string',

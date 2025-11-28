@@ -148,20 +148,22 @@ App Launch → Check Notes in Realm → Conditional Navigation (Home/MyNotes) �
 
 ## 5. API Contracts (Feature-Specific Only)
 
+**Base URL:** `https://note-taker-backend-c193.onrender.com`
+
 ### Endpoint(s)
 
-| Endpoint | Method | Request | Response | Auth |
-|----------|--------|---------|----------|------|
-| /api/notes | POST | Note creation payload | Note object with ID | No (future: Yes) |
-| /api/notes | GET | None | Array of note objects | No (future: Yes) |
-| /api/notes/:id | GET | None (ID in path) | Single note object | No (future: Yes) |
-| /api/notes/:id | PUT | Note update payload | Updated note object | No (future: Yes) |
-| /api/notes/:id/delete | DELETE | None (ID in path) | Success message | No (future: Yes) |
-| /api/notes/check-name/:name | GET | None (name in path) | {exists: boolean} | No (future: Yes) |
+| Endpoint                 | Method | Request                  | Response              | Auth             |
+| ------------------------ | ------ | ------------------------ | --------------------- | ---------------- |
+| /api/notes/create        | POST   | Note creation payload    | Note object with ID   | No (future: Yes) |
+| /api/notes               | GET    | None                     | Array of note objects | No (future: Yes) |
+| /api/notes/:id           | GET    | None (ID in path)        | Single note object    | No (future: Yes) |
+| /api/notes/:id/title     | PATCH  | Title update payload     | Updated note object   | No (future: Yes) |
+| /api/notes/:id/content   | PATCH  | Content update payload   | Updated note object   | No (future: Yes) |
+| /api/notes/:id/delete    | DELETE | None (ID in path)        | Success message       | No (future: Yes) |
 
 ### Request / Response (Only fields used by THIS feature)
 
-**POST /api/notes Request:**
+**POST /api/notes/create Request:**
 
 ```json
 {
@@ -171,7 +173,7 @@ App Launch → Check Notes in Realm → Conditional Navigation (Home/MyNotes) �
 }
 ```
 
-**POST /api/notes Response (Success):**
+**POST /api/notes/create Response (Success):**
 
 ```json
 {
@@ -206,6 +208,61 @@ App Launch → Check Notes in Realm → Conditional Navigation (Home/MyNotes) �
     }
   ],
   "count": 1
+}
+```
+
+**PATCH /api/notes/:id/title Request:**
+
+```json
+{
+  "title": "Updated Meeting Notes"
+}
+```
+
+**PATCH /api/notes/:id/title Response (Success):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "name": "Updated Meeting Notes",
+    "content": "Discussed project timeline and deliverables",
+    "formattedContent": "<p><b>Discussed</b> project timeline and <u>deliverables</u></p>",
+    "createdBy": "Anonymous User",
+    "createdAt": "2025-11-25T10:00:00.000Z",
+    "updatedAt": "2025-11-25T11:00:00.000Z",
+    "isDeleted": false
+  },
+  "message": "Note title updated successfully."
+}
+```
+
+**PATCH /api/notes/:id/content Request:**
+
+```json
+{
+  "content": "Updated plain text content",
+  "formattedContent": "<p><b>Updated</b> HTML formatted content</p>"
+}
+```
+
+**PATCH /api/notes/:id/content Response (Success):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "name": "Meeting Notes",
+    "content": "Updated plain text content",
+    "formattedContent": "<p><b>Updated</b> HTML formatted content</p>",
+    "createdBy": "Anonymous User",
+    "createdAt": "2025-11-25T10:00:00.000Z",
+    "updatedAt": "2025-11-25T11:30:00.000Z",
+    "isDeleted": false
+  },
+  "message": "Note content updated successfully."
 }
 ```
 
