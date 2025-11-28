@@ -7,6 +7,8 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { initializeRealm } from './src/models';
 import { getAllNotes } from './src/utils/realmHelper';
 import { RootStackParamList } from './src/navigation/types';
+import syncService from './src/services/syncService';
+import { networkState } from './src/utils/networkHelper';
 
 function App(): React.JSX.Element {
   const [isRealmReady, setIsRealmReady] = useState(false);
@@ -26,6 +28,9 @@ function App(): React.JSX.Element {
         // If no notes, show Welcome screen (Home)
         setInitialRoute(hasNotes ? 'Drawer' : 'Home');
         setIsRealmReady(true);
+
+        // Start background sync after realm initialization (non-blocking)
+        startBackgroundSync();
       } catch (error) {
         console.error('Failed to initialize Realm:', error);
         setRealmError('Failed to initialize database');
@@ -34,6 +39,25 @@ function App(): React.JSX.Element {
 
     setupRealm();
   }, []);
+
+  // Background sync on app start
+  const startBackgroundSync = async () => {
+    try {
+      // Wait a bit to let the app fully initialize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check if online before syncing
+      if (networkState.hasInternetConnection) {
+        console.log('🔄 Starting background sync on app start...');
+        const syncedCount = await syncService.syncUnsyncedNotes();
+        console.log(`✅ Background sync complete: ${syncedCount} notes synced`);
+      } else {
+        console.log('📴 Offline - skipping background sync on app start');
+      }
+    } catch (error) {
+      console.error('❌ Background sync failed on app start:', error);
+    }
+  };
 
   if (realmError) {
     return (

@@ -13,7 +13,8 @@
 - Formatting options including bold and underline.
 - Save flow with a pop-up for entering a note name.
 - Validation for note name length, duplication, and empty inputs.
-- Display of saved notes under the “My Notes” list with metadata (name, created by, created on).
+- Display of saved notes under the "My Notes" list with metadata (name, created by, created on).
+- **Pagination for notes list** (load 20 notes at a time, load more on scroll).
 - UI based on provided design link.
 
 ### Out of Scope
@@ -28,7 +29,8 @@
 - Additional formatting options such as italics or highlighting.
 - Tagging and categorization.
 - Cloud backup.
-- Search and filtering of notes.
+- Advanced search and filtering of notes.
+- Customizable pagination page size.
 
 ## 5. User Stories + Acceptance Criteria
 ### User Story 1

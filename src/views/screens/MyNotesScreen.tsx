@@ -17,6 +17,7 @@ import { useNotesStore } from '../../stores/StoreProvider';
 import { NoteCard } from '../../components/NoteCard';
 import { EmptyNotesView } from '../../components/EmptyNotesView';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import { SyncStatus } from '../components/SyncStatus';
 import { NoteState } from '../../types';
 import { MyNotesViewModel } from '../../viewmodels/MyNotesViewModel';
 
@@ -122,6 +123,9 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
 
   return (
     <View style={styles.container} testID="mynotes-screen">
+      {/* Sync Status Bar */}
+      <SyncStatus showDetails={false} />
+
       {/* Search Header - Fixed outside FlatList to prevent blur */}
       <View style={styles.headerContainer} testID="mynotes-header">
         <TextInput
@@ -149,6 +153,13 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
         renderItem={renderNoteCard}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={renderEmptyState}
+        ListFooterComponent={
+          viewModel.isLoadingMore ? (
+            <View style={styles.footerLoader} testID="mynotes-loading-more">
+              <Text style={styles.footerText}>Loading more notes...</Text>
+            </View>
+          ) : null
+        }
         contentContainerStyle={
           viewModel.filteredNotes.length === 0 ? styles.emptyContainer : styles.listContent
         }
@@ -159,6 +170,17 @@ const MyNotesScreen: React.FC<MyNotesScreenProps> = observer(({ navigation }) =>
             tintColor="#007AFF"
           />
         }
+        onEndReached={() => {
+          if (viewModel.hasMoreNotes && !viewModel.isLoadingMore) {
+            viewModel.loadMoreNotes();
+          }
+        }}
+        onEndReachedThreshold={0.5}
+        getItemLayout={(data, index) => ({
+          length: 100,
+          offset: 100 * index,
+          index,
+        })}
         keyboardShouldPersistTaps="handled"
         testID="mynotes-list"
       />
@@ -223,6 +245,16 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flexGrow: 1,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
   fab: {
     position: 'absolute',

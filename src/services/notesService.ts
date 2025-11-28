@@ -48,6 +48,23 @@ export interface ApiListResponse<T> {
   count: number;
 }
 
+export interface PaginationMetadata {
+  currentPage: number;
+  totalPages: number;
+  totalNotes: number;
+  limit: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface ApiPaginatedResponse<T> {
+  success: true;
+  data: {
+    notes: T[];
+    pagination: PaginationMetadata;
+  };
+}
+
 export interface ApiErrorResponse {
   success: false;
   error: {
@@ -85,21 +102,52 @@ class NotesService {
   }
 
   /**
-   * Get all non-deleted notes
-   * @returns List of notes
+   * Get paginated notes
+   * @param page - Page number (default: 1)
+   * @param limit - Notes per page (default: 20)
+   * @returns Paginated list of notes with metadata
    */
-  async getAllNotes(): Promise<ApiListResponse<NoteResponse>> {
+  async getAllNotes(page: number = 1, limit: number = 20): Promise<ApiPaginatedResponse<NoteResponse>> {
     const response = await apiClient.get(
-      API_ENDPOINTS.NOTES.GET_ALL
+      `${API_ENDPOINTS.NOTES.GET_ALL}?limit=${limit}&page=${page}`
     );
-    // Unwrap if nested structure exists
+
+    // Handle nested response structure: { data: { data: { notes: [...], pagination: {...} } } }
+    if (response.data.data && response.data.data.notes && Array.isArray(response.data.data.notes)) {
+      return {
+        success: response.data.success,
+        data: {
+          notes: response.data.data.notes,
+          pagination: response.data.data.pagination || {
+            currentPage: page,
+            totalPages: 1,
+            totalNotes: response.data.data.notes.length,
+            limit: limit,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
+        },
+      };
+    }
+
+    // Fallback: Handle if data.data is directly an array (legacy response)
     if (response.data.data && Array.isArray(response.data.data)) {
       return {
         success: response.data.success,
-        data: response.data.data,
-        count: response.data.data.length,
+        data: {
+          notes: response.data.data,
+          pagination: {
+            currentPage: page,
+            totalPages: 1,
+            totalNotes: response.data.data.length,
+            limit: limit,
+            hasNextPage: false,
+            hasPrevPage: false,
+          },
+        },
       };
     }
+
     return response.data;
   }
 

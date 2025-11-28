@@ -487,7 +487,7 @@ App Launch → Check Notes in Realm → Conditional Navigation (Home/MyNotes) �
 
 - **Memory/storage:**
   - Realm storage full: Show error "Storage full, please free up space", prevent new note creation
-  - Large note count (> 1000): Implement pagination in My Notes list (load 50 at a time)
+  - **Pagination implemented**: Notes list loads 20 notes at a time with infinite scroll
 
 ---
 
@@ -511,11 +511,24 @@ App Launch → Check Notes in Realm → Conditional Navigation (Home/MyNotes) �
 
 ## 10. Performance (Feature-specific only)
 
-- **List optimizations:**
-  - My Notes list: Use FlatList with `getItemLayout` for fixed-height note cards
-  - Initial render: Load 20 notes, implement pagination (load more on scroll)
+- **List optimizations with Pagination:**
+  - My Notes list: Use FlatList with `onEndReached` for infinite scroll pagination
+  - **Pagination Settings:**
+    - Page size: 20 notes per page
+    - Load trigger: onEndReachedThreshold={0.5} (load when 50% from bottom)
+    - Loading indicator: Show spinner at list footer while loading more notes
+  - **API Integration:**
+    - GET /api/notes?limit=20&page=1 for first page
+    - GET /api/notes?limit=20&page=2 for second page, etc.
+    - Response includes pagination metadata (currentPage, totalPages, hasNextPage)
+  - **Realm Integration:**
+    - Initial load: Load first 20 notes from Realm (instant UI)
+    - API sync: Fetch first page from API, sync to Realm
+    - Load more: Fetch next page from API, append to Realm
+    - Offline: Load next 20 from Realm cache
   - Memoization: Wrap NoteCard component in React.memo to prevent unnecessary re-renders
   - Key extraction: Use note ID as FlatList key for efficient diffing
+  - Fixed height optimization: Use `getItemLayout` for consistent card height (100px)
 
 - **Image optimizations:**
   - Not applicable (no images in note content for Release 3.3.6)

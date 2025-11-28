@@ -77,6 +77,22 @@ export class MyNotesViewModel {
   }
 
   /**
+   * Get pagination state - is loading more notes
+   */
+  @computed
+  get isLoadingMore(): boolean {
+    return this.notesStore.isLoadingMore;
+  }
+
+  /**
+   * Get pagination state - has more notes to load
+   */
+  @computed
+  get hasMoreNotes(): boolean {
+    return this.notesStore.hasMoreNotes;
+  }
+
+  /**
    * Initialize view model - load notes from Realm
    */
   @action
@@ -108,6 +124,18 @@ export class MyNotesViewModel {
       console.error('Failed to refresh notes:', error);
     } finally {
       this.isRefreshing = false;
+    }
+  };
+
+  /**
+   * Load more notes (pagination - infinite scroll)
+   */
+  @action
+  loadMoreNotes = async () => {
+    try {
+      await this.notesStore.loadMoreNotes();
+    } catch (error) {
+      console.error('Failed to load more notes:', error);
     }
   };
 

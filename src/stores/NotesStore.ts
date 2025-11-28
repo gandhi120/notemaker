@@ -2,12 +2,20 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import { NoteState } from '../types';
 import * as RealmHelper from '../utils/realmHelper';
 import notesService from '../services/notesService';
+import { networkState } from '../utils/networkHelper';
 
 export class NotesStore {
   notes: NoteState[] = [];
   isLoading = false;
   error: string | null = null;
   selectedNoteId: string | null = null;
+
+  // Pagination state
+  currentPage: number = 1;
+  pageSize: number = 20;
+  hasMoreNotes: boolean = true;
+  isLoadingMore: boolean = false;
+  totalNotes: number = 0;
 
   constructor() {
     makeAutoObservable(this);
@@ -28,24 +36,206 @@ export class NotesStore {
     return this.notes.filter(note => !note.isSynced).length;
   }
 
-  // Load all notes from Realm
+  // Load notes with pagination (API-first with Realm cache fallback)
   async loadNotes() {
     this.setLoading(true);
     this.clearError();
 
+    // Reset pagination state for initial load
+    runInAction(() => {
+      this.currentPage = 1;
+      this.hasMoreNotes = true;
+      this.notes = [];
+    });
+
     try {
-      const realmNotes = RealmHelper.getAllNotes();
+      // Step 1: Load first page from Realm immediately for instant UI (cache)
+      const realmNotes = RealmHelper.getPaginatedNotes(this.currentPage, this.pageSize);
+      const totalCount = RealmHelper.getTotalNotesCount();
+
       runInAction(() => {
         this.notes = realmNotes;
-        this.isLoading = false;
+        this.totalNotes = totalCount;
+        this.hasMoreNotes = realmNotes.length >= this.pageSize;
       });
-      console.log(`✅ Loaded ${realmNotes.length} notes from Realm`);
+      console.log(`✅ Loaded page ${this.currentPage} (${realmNotes.length} notes) from Realm (cache)`);
+
+      // Step 2: If online, fetch from API to get latest data
+      if (networkState.hasInternetConnection) {
+        console.log(`🌐 Fetching page ${this.currentPage} from API...`);
+
+        try {
+          const apiResponse = await notesService.getAllNotes(this.currentPage, this.pageSize);
+
+          // Extract notes and pagination metadata
+          const apiNotes = apiResponse.data.notes;
+          const pagination = apiResponse.data.pagination;
+
+          console.log(`✅ Fetched page ${pagination.currentPage} (${apiNotes.length} notes) from API`);
+
+          // Step 3: Sync API notes to Realm (update local cache)
+          this.syncApiNotesToRealm(apiNotes);
+
+          // Step 4: Reload from Realm to get updated data
+          const updatedNotes = RealmHelper.getPaginatedNotes(this.currentPage, this.pageSize);
+          const updatedTotal = RealmHelper.getTotalNotesCount();
+
+          runInAction(() => {
+            this.notes = updatedNotes;
+            this.totalNotes = pagination.totalNotes || updatedTotal;
+            this.hasMoreNotes = pagination.hasNextPage;
+            this.isLoading = false;
+          });
+
+          console.log(`✅ Page ${this.currentPage} synced (Total: ${this.totalNotes} notes)`);
+        } catch (apiError) {
+          // API fetch failed, but we already have cached data from Realm
+          console.warn('⚠️ API fetch failed, using cached Realm data:', apiError);
+          runInAction(() => {
+            this.isLoading = false;
+          });
+        }
+      } else {
+        // Offline - use cached Realm data
+        console.log('📴 Offline mode - using cached Realm data');
+        runInAction(() => {
+          this.isLoading = false;
+        });
+      }
     } catch (error) {
       runInAction(() => {
         this.error = 'Failed to load notes';
         this.isLoading = false;
       });
       console.error('❌ Error loading notes:', error);
+    }
+  }
+
+  // Load more notes (pagination)
+  async loadMoreNotes() {
+    // Don't load if already loading or no more notes
+    if (this.isLoadingMore || !this.hasMoreNotes || this.isLoading) {
+      return;
+    }
+
+    runInAction(() => {
+      this.isLoadingMore = true;
+      this.currentPage++;
+    });
+
+    console.log(`🔄 Loading more notes - Page ${this.currentPage}...`);
+
+    try {
+      // Load next page from Realm first (instant UI)
+      const realmNotes = RealmHelper.getPaginatedNotes(this.currentPage, this.pageSize);
+
+      runInAction(() => {
+        this.notes = [...this.notes, ...realmNotes];
+        this.hasMoreNotes = realmNotes.length >= this.pageSize;
+      });
+
+      console.log(`✅ Loaded page ${this.currentPage} (${realmNotes.length} notes) from Realm`);
+
+      // If online, fetch from API in background
+      if (networkState.hasInternetConnection) {
+        try {
+          const apiResponse = await notesService.getAllNotes(this.currentPage, this.pageSize);
+          const apiNotes = apiResponse.data.notes;
+          const pagination = apiResponse.data.pagination;
+
+          console.log(`✅ Fetched page ${pagination.currentPage} (${apiNotes.length} notes) from API`);
+
+          // Sync to Realm
+          this.syncApiNotesToRealm(apiNotes);
+
+          // Reload this page from Realm to get updated data
+          const updatedPageNotes = RealmHelper.getPaginatedNotes(this.currentPage, this.pageSize);
+          const updatedTotal = RealmHelper.getTotalNotesCount();
+
+          runInAction(() => {
+            // Replace notes for current page
+            const previousPagesCount = (this.currentPage - 1) * this.pageSize;
+            this.notes = [
+              ...this.notes.slice(0, previousPagesCount),
+              ...updatedPageNotes,
+            ];
+            this.totalNotes = pagination.totalNotes || updatedTotal;
+            this.hasMoreNotes = pagination.hasNextPage;
+            this.isLoadingMore = false;
+          });
+        } catch (apiError) {
+          console.warn('⚠️ API fetch failed for page, using cached data:', apiError);
+          runInAction(() => {
+            this.isLoadingMore = false;
+          });
+        }
+      } else {
+        runInAction(() => {
+          this.isLoadingMore = false;
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error loading more notes:', error);
+      runInAction(() => {
+        this.currentPage--; // Rollback page increment
+        this.isLoadingMore = false;
+      });
+    }
+  }
+
+  // Sync API notes to Realm (update local cache with server data)
+  private syncApiNotesToRealm(apiNotes: any[]) {
+    try {
+      // Guard against invalid input
+      if (!Array.isArray(apiNotes)) {
+        console.error('❌ syncApiNotesToRealm called with non-array:', apiNotes);
+        return;
+      }
+
+      const realm = RealmHelper.getRealm();
+
+      realm.write(() => {
+        apiNotes.forEach((apiNote: any) => {
+          // Find existing note in Realm by apiId
+          const existingNotes = realm
+            .objects('Note')
+            .filtered('apiId == $0', apiNote._id);
+
+          if (existingNotes.length > 0) {
+            // Update existing note
+            const existingNote = existingNotes[0] as any;
+            existingNote.name = apiNote.name;
+            existingNote.content = apiNote.content;
+            // Use content as formattedContent if formattedContent is not provided
+            existingNote.formattedContent = apiNote.formattedContent || apiNote.content;
+            existingNote.updatedAt = new Date(apiNote.updatedAt);
+            existingNote.isSynced = true;
+            console.log(`✅ Updated note in Realm: ${existingNote.id}`);
+          } else {
+            // Create new note from API (not in local Realm yet)
+            const noteId = `note_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            realm.create('Note', {
+              _id: new RealmHelper.Realm.BSON.ObjectId(),
+              id: noteId,
+              apiId: apiNote._id,
+              name: apiNote.name,
+              content: apiNote.content,
+              // Use content as formattedContent if formattedContent is not provided
+              formattedContent: apiNote.formattedContent || apiNote.content,
+              createdBy: apiNote.createdBy || 'Anonymous User',
+              createdAt: new Date(apiNote.createdAt),
+              updatedAt: new Date(apiNote.updatedAt),
+              isDeleted: apiNote.isDeleted || apiNote.deletedAt !== null || false,
+              isSynced: true,
+            });
+            console.log(`✅ Created new note from API: ${noteId} (API ID: ${apiNote._id})`);
+          }
+        });
+      });
+
+      console.log(`✅ Synced ${apiNotes.length} API notes to Realm`);
+    } catch (error) {
+      console.error('❌ Error syncing API notes to Realm:', error);
     }
   }
 

@@ -49,8 +49,11 @@ export type NotesStackParamList = {
 // Store types
 export interface NoteState {
   id: string;
+  apiId?: string; // Server's MongoDB _id (set after successful sync)
   title: string;
-  content: string;
+  name: string; // Note name/title (for API compatibility)
+  content: string; // Plain text content
+  formattedContent: string; // HTML formatted content
   createdAt: Date;
   updatedAt: Date;
   isSynced: boolean;

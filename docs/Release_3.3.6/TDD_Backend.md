@@ -44,7 +44,7 @@ Request flows through the following pipeline:
 | ------------------------ | ------ | ------------------------- | ---------------- | ------------- |
 | `/api/notes/create`      | POST   | Create a new note         | No (future: Yes) | Not Available |
 | `/api/notes/:id`         | GET    | Get single note by ID     | No (future: Yes) | Not Available |
-| `/api/notes`             | GET    | Get all non-deleted notes | No (future: Yes) | Not Available |
+| `/api/notes?limit=20&page=1` | GET    | Get paginated notes | No (future: Yes) | Not Available |
 | `/api/notes/:id/title`   | PATCH  | Update note title         | No (future: Yes) | Not Available |
 | `/api/notes/:id/content` | PATCH  | Update note content       | No (future: Yes) | Not Available |
 | `/api/notes/:id/delete`  | DELETE | Soft-delete a note        | No (future: Yes) | Not Available |
@@ -78,6 +78,12 @@ Request flows through the following pipeline:
 }
 ```
 
+**GET /api/notes?limit=20&page=1** (Get Paginated Notes)
+
+Query Parameters:
+- `limit` (optional): Number of notes per page (default: 20, max: 100)
+- `page` (optional): Page number (default: 1)
+
 ### Response Schema
 
 **Success Response (POST/PATCH/GET single note)**
@@ -99,24 +105,33 @@ Request flows through the following pipeline:
 }
 ```
 
-**Success Response (GET /api/notes)** (List All)
+**Success Response (GET /api/notes?limit=20&page=1)** (Paginated List)
 
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "_id": "507f1f77bcf86cd799439011",
-      "name": "Meeting Notes",
-      "content": "Plain text content",
-      "formattedContent": "<b>HTML</b> formatted content",
-      "createdBy": "Anonymous User",
-      "createdAt": "2025-11-25T10:00:00.000Z",
-      "updatedAt": "2025-11-25T10:00:00.000Z",
-      "isDeleted": false
+  "data": {
+    "notes": [
+      {
+        "_id": "507f1f77bcf86cd799439011",
+        "name": "Meeting Notes",
+        "content": "Plain text content",
+        "formattedContent": "<b>HTML</b> formatted content",
+        "createdBy": "Anonymous User",
+        "createdAt": "2025-11-25T10:00:00.000Z",
+        "updatedAt": "2025-11-25T10:00:00.000Z",
+        "isDeleted": false
+      }
+    ],
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 5,
+      "totalNotes": 95,
+      "limit": 20,
+      "hasNextPage": true,
+      "hasPrevPage": false
     }
-  ],
-  "count": 1
+  }
 }
 ```
 

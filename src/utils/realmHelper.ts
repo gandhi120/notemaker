@@ -3,14 +3,20 @@ import { getRealm } from '../models';
 import { Note } from '../models/Note';
 import { NoteState } from '../types';
 
+// Re-export getRealm and Realm for use in other modules
+export { getRealm, Realm };
+
 /**
  * Convert Realm Note object to app NoteState
  */
 const mapRealmNoteToState = (realmNote: Note): NoteState => {
   return {
     id: realmNote.id,
+    apiId: realmNote.apiId,
     title: realmNote.name,
-    content: realmNote.formattedContent,
+    name: realmNote.name, // Include name field for API compatibility
+    content: realmNote.content, // Plain text content
+    formattedContent: realmNote.formattedContent, // HTML formatted content
     createdAt: realmNote.createdAt,
     updatedAt: realmNote.updatedAt,
     isSynced: realmNote.isSynced,
@@ -32,6 +38,45 @@ export const getAllNotes = (): NoteState[] => {
   } catch (error) {
     console.error('❌ Error fetching notes from Realm:', error);
     return [];
+  }
+};
+
+/**
+ * Get paginated notes from Realm
+ * @param page - Page number (1-indexed)
+ * @param limit - Number of notes per page
+ * @returns Paginated notes array
+ */
+export const getPaginatedNotes = (page: number = 1, limit: number = 20): NoteState[] => {
+  try {
+    const realm = getRealm();
+    const offset = (page - 1) * limit;
+
+    const allNotes = realm
+      .objects<Note>('Note')
+      .filtered('isDeleted == false')
+      .sorted('createdAt', true); // Descending order (newest first)
+
+    // Slice the results for pagination
+    const paginatedNotes = allNotes.slice(offset, offset + limit);
+
+    return Array.from(paginatedNotes).map(mapRealmNoteToState);
+  } catch (error) {
+    console.error('❌ Error fetching paginated notes from Realm:', error);
+    return [];
+  }
+};
+
+/**
+ * Get total count of active notes
+ */
+export const getTotalNotesCount = (): number => {
+  try {
+    const realm = getRealm();
+    return realm.objects<Note>('Note').filtered('isDeleted == false').length;
+  } catch (error) {
+    console.error('❌ Error getting total notes count:', error);
+    return 0;
   }
 };
 
