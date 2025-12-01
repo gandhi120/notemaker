@@ -31,6 +31,7 @@
 This plan outlines a comprehensive unit testing strategy for all components, screens, view models, and utilities in the NoteMaker React Native application up to Phase 6.5.
 
 ### Key Principles
+
 - **Bottom-Up Approach:** Start with utilities, then view models, stores, components, screens
 - **Strict Coverage:** 85%+ enforced by Jest (tests will fail if below threshold)
 - **Incremental Mocks:** Build mocks as needed, not all upfront
@@ -42,16 +43,19 @@ This plan outlines a comprehensive unit testing strategy for all components, scr
 ## Testing Stack & Setup
 
 ### Installation Strategy
+
 **Install all testing dependencies upfront** before starting any test implementation.
 
 ### Required Dependencies
 
 **Install using npm:**
+
 ```bash
 npm install --save-dev @testing-library/react-native@^12.4.0 @testing-library/jest-native@^5.4.3
 ```
 
 **Already installed:**
+
 - `jest@^29.6.3`
 - `react-test-renderer@19.0.0`
 - `@types/jest@^29.5.13`
@@ -128,6 +132,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 #### Test Cases
 
 ##### `validateNoteTitle()`
+
 - ✓ Valid title (1-50 chars)
 - ✓ Empty title (should fail)
 - ✓ Title with only whitespace (should fail)
@@ -136,6 +141,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ Returns correct error messages
 
 ##### `validateNoteContent()`
+
 - ✓ Valid HTML content
 - ✓ Empty content (should fail)
 - ✓ Content with only HTML tags (should fail)
@@ -145,12 +151,14 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ Returns correct error messages
 
 ##### `getContentCharacterCount()`
+
 - ✓ Correctly strips HTML tags
 - ✓ Handles nested HTML
 - ✓ Handles empty string
 - ✓ Handles plain text
 
 ##### `isContentEmpty()`
+
 - ✓ Returns true for empty string
 - ✓ Returns true for HTML with no text
 - ✓ Returns false for content with text
@@ -169,23 +177,27 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 #### Test Cases
 
 ##### `mapRealmNoteToState()`
+
 - ✓ Correctly maps all fields
 - ✓ Maps `name` → `title`
 - ✓ Maps `formattedContent` → `content`
 - ✓ Preserves timestamps
 
 ##### `getAllNotes()`
+
 - ✓ Returns all non-deleted notes
 - ✓ Sorts by createdAt (newest first)
 - ✓ Filters out deleted notes
 - ✓ Returns empty array when no notes
 
 ##### `getNoteById()`
+
 - ✓ Returns correct note when found
 - ✓ Returns null when not found
 - ✓ Returns null for deleted note
 
 ##### `createNote()`
+
 - ✓ Creates note with all required fields
 - ✓ Generates unique ID
 - ✓ Sets timestamps correctly
@@ -193,22 +205,26 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ Handles errors gracefully
 
 ##### `updateNote()`
+
 - ✓ Updates title correctly
 - ✓ Updates content and formattedContent
 - ✓ Updates updatedAt timestamp
 - ✓ Returns null for non-existent note
 
 ##### `deleteNote()`
+
 - ✓ Sets isDeleted flag to true
 - ✓ Doesn't actually delete from DB (soft delete)
 - ✓ Handles non-existent note
 
 ##### `checkDuplicateName()`
+
 - ✓ Detects duplicate titles (case-insensitive)
 - ✓ Excludes specified noteId from check
 - ✓ Returns false for unique titles
 
 ##### `getUnsyncedNotes()` & `markNoteAsSynced()`
+
 - ✓ Returns only unsynced notes
 - ✓ Marks note as synced correctly
 
@@ -225,15 +241,18 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 #### Test Cases
 
 ##### `showSuccessToast()`
+
 - ✓ Calls Toast.show with correct type
 - ✓ Uses correct styling (green border)
 - ✓ Includes message and description
 
 ##### `showErrorToast()`
+
 - ✓ Calls Toast.show with error styling (red border)
 - ✓ Uses longer visibility (4s)
 
 ##### `showInfoToast()`
+
 - ✓ Calls Toast.show with info styling (blue border)
 
 **Coverage Target:** 80%+
@@ -254,11 +273,13 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 #### Test Cases
 
 ##### Initialization
+
 - ✓ Initializes with empty content/title for new note
 - ✓ Loads existing note content when editing
 - ✓ Sets `isEditing` correctly based on noteId
 
 ##### Content Management
+
 - ✓ `handleContentChange()` updates content
 - ✓ Sets `hasUnsavedChanges` to true on content change
 - ✓ `characterCount` computed property strips HTML
@@ -267,6 +288,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ `canSave` returns true for valid content
 
 ##### Save Operations
+
 - ✓ `handleSavePress()` shows modal when validation passes
 - ✓ `handleSavePress()` shows error toast for invalid content
 - ✓ `saveNote()` validates title (required, max 50 chars)
@@ -280,6 +302,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ `saveNote()` hides modal on success
 
 ##### Cleanup
+
 - ✓ `cleanup()` resets all state
 - ✓ `resetUnsavedChanges()` clears flag
 
@@ -297,10 +320,12 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 #### Test Cases
 
 ##### Initialization
+
 - ✓ Loads notes on `initialize()`
 - ✓ Sets loading state correctly
 
 ##### Search & Filtering
+
 - ✓ `setSearchQuery()` updates searchQuery immediately
 - ✓ `debouncedSearchQuery` updates after 300ms
 - ✓ Debounce cancels previous timer on rapid input
@@ -310,17 +335,20 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ `clearSearch()` resets query
 
 ##### Computed Properties
+
 - ✓ `unsyncedCount` returns correct count
 - ✓ `hasNotes` returns true when notes exist
 - ✓ `hasSearchResults` returns false for no matches
 
 ##### Data Operations
+
 - ✓ `refreshNotes()` sets isRefreshing flag
 - ✓ `refreshNotes()` loads notes from store
 - ✓ `deleteNote()` calls store deleteNote
 - ✓ `getNoteById()` returns correct note
 
 ##### Utility Methods
+
 - ✓ `formatDate()` formats today as time (h:mm A)
 - ✓ `formatDate()` formats yesterday correctly
 - ✓ `formatDate()` formats within week as weekday
@@ -329,6 +357,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ `getPreviewText()` truncates to 100 chars
 
 ##### Cleanup
+
 - ✓ `cleanup()` clears debounce timer
 
 **Coverage Target:** 90%+
@@ -346,6 +375,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Estimated Test Cases:** 4
 
 #### Test Cases
+
 - ✓ Renders with default message
 - ✓ Renders with custom message prop
 - ✓ Displays emoji (📝)
@@ -363,6 +393,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Estimated Test Cases:** 6
 
 #### Test Cases
+
 - ✓ Renders when visible prop is true
 - ✓ Doesn't render when visible is false
 - ✓ Displays note title in message
@@ -381,6 +412,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Estimated Test Cases:** 12
 
 #### Test Cases
+
 - ✓ Renders when visible prop is true
 - ✓ Displays initial title in input
 - ✓ Updates title on text change
@@ -407,6 +439,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 #### Test Cases
 
 ##### Rendering
+
 - ✓ Renders note title
 - ✓ Renders preview (stripped HTML)
 - ✓ Truncates preview to 100 chars
@@ -417,17 +450,20 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ Has correct testIDs
 
 ##### Interactions
+
 - ✓ Calls `onPress` when card tapped
 - ✓ Calls `onDelete` when delete button tapped
 - ✓ Delete stops event propagation
 
 ##### Date Formatting
+
 - ✓ Shows time for today (h:mm A)
 - ✓ Shows "Yesterday" for yesterday
 - ✓ Shows weekday for within 7 days
 - ✓ Shows full date for older notes (MMM D, YYYY)
 
 ##### HTML Stripping
+
 - ✓ Strips HTML tags from content
 - ✓ Handles nested HTML
 - ✓ Handles empty content
@@ -445,6 +481,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Mock Strategy:** Mock `react-native-pell-rich-editor`
 
 #### Test Cases
+
 - ✓ Renders with placeholder
 - ✓ Renders with initial content
 - ✓ Calls `onContentChange` when content changes
@@ -471,11 +508,13 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 #### Test Cases
 
 ##### Initialization
+
 - ✓ Initializes with empty notes array
 - ✓ `isLoading` starts as false
 - ✓ `error` starts as null
 
 ##### CRUD Operations
+
 - ✓ `loadNotes()` fetches from realm and updates notes
 - ✓ `loadNotes()` sets isLoading state
 - ✓ `loadNotes()` handles errors
@@ -487,12 +526,14 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ `deleteNoteData()` reloads notes after delete
 
 ##### Computed Properties
+
 - ✓ `selectedNote` returns correct note
 - ✓ `selectedNote` returns undefined when not selected
 - ✓ `syncedNotesCount` counts synced notes
 - ✓ `unsyncedNotesCount` counts unsynced notes
 
 ##### Utility Methods
+
 - ✓ `selectNote()` sets selectedNoteId
 - ✓ `checkDuplicateName()` calls realmHelper
 - ✓ `clearError()` clears error message
@@ -509,6 +550,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Estimated Test Cases:** 4
 
 #### Test Cases
+
 - ✓ Contains notesStore instance
 - ✓ `reset()` calls reset on all child stores
 - ✓ `getRootStore()` returns singleton instance
@@ -531,6 +573,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Mock Strategy:** Mock navigation
 
 #### Test Cases
+
 - ✓ Renders welcome title
 - ✓ Renders subtitle
 - ✓ Renders "Go to My Notes" button
@@ -552,6 +595,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 #### Test Cases
 
 ##### Rendering
+
 - ✓ Renders search input
 - ✓ Renders notes list (FlatList)
 - ✓ Renders FAB button
@@ -560,6 +604,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ Shows unsynced badge with count
 
 ##### Interactions
+
 - ✓ Updates search on text input
 - ✓ Navigates to NoteEditor on FAB press
 - ✓ Navigates to NoteEditor with noteId on card press
@@ -569,11 +614,13 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ Closes modal on cancel
 
 ##### Lifecycle
+
 - ✓ Initializes ViewModel on mount
 - ✓ Reloads notes on focus (useFocusEffect)
 - ✓ Cleans up ViewModel on unmount
 
 ##### Pull to Refresh
+
 - ✓ Triggers refreshNotes on pull down
 - ✓ Shows RefreshControl while refreshing
 
@@ -591,6 +638,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 #### Test Cases
 
 ##### Rendering
+
 - ✓ Renders RichTextEditor
 - ✓ Renders character counter
 - ✓ Shows "Save" button for new note
@@ -598,6 +646,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ Disables save when canSave is false
 
 ##### Interactions
+
 - ✓ Updates content on editor change
 - ✓ Opens save modal on save button press
 - ✓ Calls saveNote on modal save
@@ -605,6 +654,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 - ✓ Navigates back without alert when no changes
 
 ##### Lifecycle
+
 - ✓ Initializes ViewModel on mount
 - ✓ Loads note data when editing
 - ✓ Cleans up ViewModel on unmount
@@ -626,6 +676,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Estimated Test Cases:** 2
 
 #### Test Cases
+
 - ✓ Type definitions compile correctly
 - ✓ Route param types are correct
 
@@ -640,6 +691,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Estimated Test Cases:** 5
 
 #### Test Cases
+
 - ✓ Renders Stack.Navigator
 - ✓ Contains MyNotes screen
 - ✓ Contains NoteEditor screen
@@ -660,6 +712,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Estimated Test Cases:** 3
 
 #### Test Cases
+
 - ✓ Full flow: Open editor → Type content → Save → See in list
 - ✓ Validation prevents saving invalid notes
 - ✓ Duplicate title detection works end-to-end
@@ -672,6 +725,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Estimated Test Cases:** 2
 
 #### Test Cases
+
 - ✓ Full flow: Select note → Edit content → Update → See changes
 - ✓ Unsaved changes alert appears on back navigation
 
@@ -683,6 +737,7 @@ This approach keeps initial setup minimal and creates mocks only when needed.
 **Estimated Test Cases:** 3
 
 #### Test Cases
+
 - ✓ Search filters notes correctly
 - ✓ Debounce works as expected (300ms)
 - ✓ Clear search shows all notes
@@ -748,22 +803,26 @@ describe('ComponentName', () => {
 Following the **bottom-up approach**:
 
 ### 1. Phase 1: Utilities (Week 1)
+
 - **validation.ts** - Input validation logic
 - **realmHelper.ts** - Database operations
 - **toast.tsx** - Notification helpers
 - **Mocks needed:** Realm database, Toast
 
 ### 2. Phase 2: View Models (Week 2)
+
 - **NoteEditorViewModel** - Editor business logic
 - **MyNotesViewModel** - List and search logic
 - **Mocks needed:** NotesStore, fake timers for debounce
 
 ### 3. Phase 4: Stores (Week 3)
+
 - **NotesStore** - MobX state management
 - **RootStore** - Store orchestration
 - **Mocks needed:** realmHelper functions
 
 ### 4. Phase 3: Components (Week 4)
+
 - **NoteCard** - Note list item
 - **SaveNoteModal** - Title entry modal
 - **ConfirmDeleteModal** - Delete confirmation
@@ -772,17 +831,20 @@ Following the **bottom-up approach**:
 - **Mocks needed:** react-native-pell-rich-editor, moment.js
 
 ### 5. Phase 5: Screens (Week 5)
+
 - **HomeScreen** - Welcome screen
 - **MyNotesScreen** - Notes list screen
 - **NoteEditorScreen** - Note editor screen
 - **Mocks needed:** Navigation, Alert
 
 ### 6. Phase 6: Navigation (Week 6)
+
 - **types.test.ts** - Type safety
 - **NotesStack** - Stack navigation
 - **Mocks needed:** @react-navigation
 
 ### 7. Phase 6.5: Integration (Week 7)
+
 - **Note Creation Flow** - E2E creation
 - **Note Editing Flow** - E2E editing
 - **Search Flow** - E2E search
@@ -795,6 +857,7 @@ Following the **bottom-up approach**:
 ### Setup Phase
 
 - [ ] **Step 1:** Install dependencies
+
   ```bash
   npm install --save-dev @testing-library/react-native@^12.4.0 @testing-library/jest-native@^5.4.3
   ```
@@ -806,15 +869,19 @@ Following the **bottom-up approach**:
   - Add at project root with setup code from this plan
 
 - [ ] **Step 4:** Create file mock
+
   ```bash
   mkdir -p __mocks__
   ```
+
   - Create `__mocks__/fileMock.js`:
+
     ```javascript
     module.exports = 'test-file-stub';
     ```
 
 - [ ] **Step 5:** Verify setup
+
   ```bash
   npm test -- --version
   npm test -- --listTests
@@ -842,7 +909,7 @@ Following the **bottom-up approach**:
 - [ ] Check coverage: `npm test -- --coverage src/viewmodels`
 - [ ] Update `TESTING_PROGRESS.md`
 
-### Continue with Remaining Phases...
+### Continue with Remaining Phases
 
 - [ ] Phase 4: Stores
 - [ ] Phase 3: Components

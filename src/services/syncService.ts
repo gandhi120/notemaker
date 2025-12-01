@@ -179,7 +179,7 @@ class SyncService {
       const localUpdatedAt = note.updatedAt;
 
       if (serverUpdatedAt > localUpdatedAt) {
-        console.log(`⚠️ Server version is newer - applying server wins strategy`);
+        console.log('⚠️ Server version is newer - applying server wins strategy');
 
         // Update local Realm with server data (server wins)
         RealmHelper.updateNote(note.id, {
